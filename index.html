@@ -1,0 +1,272 @@
+<!DOCTYPE html> 
+<html lang="es"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <title>Generador de Recompensas</title> 
+    <style> 
+        :root { --primary: #ffffff; --accent: #5DFA30; --bg-settings: #29364A; --input-bg: #aaaaaa; --card-bg: rgba(255, 255, 255, 0.07); --reset: #ef4444; --code-bg: #0d1117; } 
+        body { font-family: 'Inter', sans-serif; background: #1a1a1a; display: flex; height: 100vh; margin: 0; overflow: hidden; } 
+        .settings { width: 850px; background: var(--bg-settings); padding: 20px; box-shadow: 4px 0 20px rgba(0,0,0,0.4); overflow-y: auto; height: 100%; color: white; border-right: 1px solid rgba(255,255,255,0.1); } 
+        .code-view { flex-grow: 1; background: var(--code-bg); color: #c9d1d9; padding: 25px; overflow-y: auto; position: relative; } 
+        .card { background: var(--card-bg); border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid var(--accent); } 
+        .section-title { font-size: 0.8rem; font-weight: 800; color: var(--accent); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.15); display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; } 
+        label { display: block; font-size: 0.65rem; font-weight: bold; margin-bottom: 2px; color: #cbd5e1; margin-top: 5px; } 
+        input, select, textarea { width: 100%; padding: 7px; margin-bottom: 4px; border: 1px solid #111; border-radius: 4px; box-sizing: border-box; font-size: 0.75rem; background-color: var(--input-bg); color: #000; font-weight: 600; } 
+        textarea { height: 100px; resize: vertical; font-family: monospace; }
+        .inv-grid { display: grid; grid-template-columns: repeat(9, 28px); gap: 2px; background: #000; padding: 5px; border: 3px solid #222; width: fit-content; margin: 0 auto 15px; } 
+        .slot { width: 28px; height: 28px; background: #333; border: 1px solid #444; font-size: 9px; display: flex; align-items: center; justify-content: center; color: #eee; } 
+        .slot.active { background: var(--accent); color: #000; font-weight: bold; border: 1px solid #fff; } 
+        .copy-btn { background: var(--accent); color: #000; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; position: sticky; top: 0; float: right; z-index: 100; box-shadow: 0 4px 0 #3eb020; transition: 0.2s; } 
+        pre { font-family: 'Fira Code', monospace; font-size: 10px; line-height: 1.3; margin-top: 40px; color: #79c0ff; } 
+        .switch { cursor: pointer; font-size: 9px; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; min-width: 140px; } 
+        .switch.on { background: var(--accent); color: #000; } 
+        .switch.off { background: var(--reset); color: #fff; } 
+    </style> 
+</head> 
+<body> 
+    <div class="settings"> 
+        <div class="header-bar" style="display:flex; justify-content: space-between; align-items: center; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;"> 
+            <h2 style="margin:0; font-size: 1.1rem;">Generador de Recompensas</h2> 
+            <button onclick="location.reload()" style="background:var(--reset); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size: 10px; font-weight: bold;">RESET</button> 
+        </div> 
+
+        <div class="card" style="border-left-color: #0ea5e9;"> 
+            <div class="section-title">⚙️ Ajustes del Panel</div> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <div><label>ID del Panel:</label><input type="text" id="panelID" value="nombre_panel" oninput="gen()"></div> 
+                <div><label>Permiso Default:</label><input type="text" id="openPerm" value="default" oninput="gen()"></div> 
+            </div> 
+            <label>Título del Menú:</label><input type="text" id="panelTitle" value="&8Menu recompensas" oninput="gen()"> 
+            <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:10px;">
+                <div><label>Comandos Apertura:</label><input type="text" id="openCmds" value="recompensas, rewards" oninput="gen()"></div>
+                <div><label>Fondo:</label><input type="text" id="emptyMat" value="BLACK_STAINED_GLASS_PANE" oninput="gen()"></div>
+            </div>
+        </div>
+
+        <div class="card" style="border-left-color: #a855f7;"> 
+            <div class="section-title">📝 Lore y Botones Finales</div> 
+            <label>Lore Superior:</label>
+            <textarea id="loreMulti" oninput="gen()">&8ɪɴꜰᴏʀᴍᴀᴄɪᴏɴ&#10; &#10;&fDesbloquea esta recompensa&#10;&fcompletando las tareas.</textarea>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div><label>Mensaje Error:</label><input type="text" id="msgError" value="&c¡No tienes los requisitos para el nivel {lv}!" oninput="gen()"></div>
+                <div><label>Mensaje Éxito:</label><input type="text" id="msgSuccess" value="&a¡Has reclamado las recompensas del nivel {lv}!" oninput="gen()"></div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div><label>Texto Recompensas:</label><input type="text" id="titleRew" value="#AEFAB4Recompensas:" oninput="gen()"></div>
+                <div><label>Texto Requisitos:</label><input type="text" id="titleReq" value="#5DFA30Requisitos:" oninput="gen()"></div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:5px;">
+                <div>
+                    <label>Bloqueado (Material):</label>
+                    <input type="text" id="matLocked" value="RED_STAINED_GLASS_PANE" oninput="gen()">
+                    <label>Botón Bloqueado:</label>
+                    <input type="text" id="btnLocked" value="#AEFAB4➥ &cNo cumples los requisitos" oninput="gen()">
+                </div>
+                <div>
+                    <label>Reclamar (Material):</label>
+                    <input type="text" id="matClaim" value="ORANGE_STAINED_GLASS_PANE" oninput="gen()">
+                    <label>Botón Reclamar:</label>
+                    <input type="text" id="btnClaim" value="#AEFAB4➥ &eClic para reclamar!" oninput="gen()">
+                </div>
+                <div>
+                    <label>Completado (Material):</label>
+                    <input type="text" id="matDone" value="LIME_STAINED_GLASS_PANE" oninput="gen()">
+                    <label>Botón Completado:</label>
+                    <input type="text" id="btnDone" value="#AEFAB4➥ &aNivel completado" oninput="gen()">
+                </div>
+            </div>
+        </div>
+
+        <div id="reqsArea"></div> 
+
+        <div class="card" style="border-left-color: #ef4444;"> 
+            <div class="section-title">🔑 LuckPerms</div> 
+            <label>Permiso de Nivel (.{lv}):</label><input type="text" id="permBase" value="recompensa.reclamada" oninput="gen()"> 
+            <label>Comando LP:</label><input type="text" id="lpCmd" value="lp user %cp-player-name% permission set {perm}.{lv} true" oninput="gen()"> 
+        </div> 
+
+        <div class="card" style="border-left-color: #3b82f6;"> 
+            <div class="section-title">🗺️ Layout e Inventario</div> 
+            <div class="inv-grid" id="invPreview"></div> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <select id="patternSelect" onchange="gen()"> 
+                    <option value="centrales">Slots Centrales</option>
+                    <option value="custom_path">Mi Patrón Especial (21 slots)</option> 
+                    <option value="snake">Serpiente</option> 
+                    <option value="zigzag">Zig-Zag</option> 
+                    <option value="borders">Bordes</option> 
+                </select> 
+                <input type="number" id="batch" value="21" oninput="gen()"> 
+            </div> 
+        </div> 
+
+        <div id="rewardsContainer"></div> 
+    </div> 
+
+    <div class="code-view"> 
+        <button class="copy-btn" onclick="copyText()">COPIAR YAML</button> 
+        <pre id="output"></pre> 
+    </div> 
+
+    <script> 
+        const PATTERNS = { 
+            centrales: [10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42,43],
+            custom_path: [9,10,19,28,37,38,39,30,21,12,13,14,23,32,41,42,43,34,25,16,17],
+            snake: [10,11,12,13,14,15,16,25,24,23,22,21,20,19,28,29,30,31,32,33,34,43,42,41,40,39,38,37], 
+            zigzag: [10,20,12,22,14,24,16,28,38,30,40,32,42,34], 
+            borders: [1,2,3,4,5,6,7,16,25,34,43,52,51,50,49,48,47,46,37,28,19,10]
+        }; 
+
+        let rewardsState = { 1:true, 2:true, 3:false, 4:false, 5:false, 6:false, 7:false, 8:false, 9:false, 10:false }; 
+        let persistentData = { rewards: {}, reqs: {} }; 
+
+        function saveAllData() { 
+            for(let r=1; r<=5; r++) { 
+                if(document.getElementById(`req${r}T`)) { 
+                    persistentData.reqs[r] = { t: document.getElementById(`req${r}T`).value, p: document.getElementById(`req${r}P`).value, b: document.getElementById(`req${r}B`).value, a: document.getElementById(`req${r}A`).value, col: document.getElementById(`req${r}Color`).value, l: document.getElementById(`req${r}L`).value }; 
+                } 
+            } 
+            for(let i=1; i<=10; i++) { 
+                if(document.getElementById(`r${i}Lvs`)) { 
+                    persistentData.rewards[i] = { lvs: document.getElementById(`r${i}Lvs`).value, l: document.getElementById(`r${i}L`).value, c: document.getElementById(`r${i}C`).value, b: document.getElementById(`r${i}B`).value, m: document.getElementById(`r${i}M`).value, col: document.getElementById(`r${i}Color`).value }; 
+                } 
+            } 
+        } 
+
+        function initReqs() { 
+            const area = document.getElementById('reqsArea'); 
+            area.className = "card"; area.style.borderLeftColor = "#16a34a"; 
+            area.innerHTML = '<div class="section-title">📊 Requisitos de Nivel</div>'; 
+            for(let r=1; r<=5; r++) { 
+                const s = persistentData.reqs[r] || { t: r==1?'Dinero':'', p: r==1?'%vault_eco_balance%':'', b: r==1?1000:0, a: r==1?500:0, col: '&a', l: '' }; 
+                area.innerHTML += `<div style="display: grid; grid-template-columns: 1.2fr 1.2fr 0.5fr 0.5fr 0.5fr 0.8fr; gap: 5px; margin-bottom: 10px; align-items: end;"> 
+                    <div><label>Título</label><input type="text" id="req${r}T" value="${s.t}" oninput="gen()"></div>
+                    <div><label>Variable</label><input type="text" id="req${r}P" value="${s.p}" oninput="gen()"></div>
+                    <div><span style="font-size:9px;">Base</span><input type="number" id="req${r}B" value="${s.b}" oninput="gen()"></div>
+                    <div><span style="font-size:9px;">Aumento</span><input type="number" id="req${r}A" value="${s.a}" oninput="gen()"></div>
+                    <div><label>Color</label><input type="text" id="req${r}Color" value="${s.col}" oninput="gen()"></div>
+                    <div><label>Niveles</label><input type="text" id="req${r}L" value="${s.l}" placeholder="Todos" oninput="gen()"></div>
+                </div>`; 
+            } 
+        } 
+
+        function initRewards() { 
+            const container = document.getElementById('rewardsContainer'); 
+            container.innerHTML = ""; 
+            for(let i=1; i<=10; i++) { 
+                const s = persistentData.rewards[i] || { lvs: '', l: i===1?'Dinero':'', c: i===1?'eco give %cp-player-name% {val}':'', b: i===1?100:0, m: 'mult', col: '#5DFA30' }; 
+                container.innerHTML += ` 
+                <div class="card" style="border-left-color: ${rewardsState[i]?'#5DFA30':'#ef4444'}"> 
+                    <div class="section-title" style="display:flex; justify-content:space-between; width:100%;">Recompensa #${i}  
+                        <span class="switch ${rewardsState[i]?'on':'off'}" onclick="toggleRew(${i})">${rewardsState[i]?'Activar':'Desactivar'}</span> 
+                    </div> 
+                    <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:5px;"> 
+                        <div><label>Niveles:</label><input type="text" id="r${i}Lvs" value="${s.lvs}" placeholder="Todos" oninput="gen()"></div> 
+                        <div><label>Nombre de Recompensa:</label><input type="text" id="r${i}L" value="${s.l}" oninput="gen()"></div> 
+                    </div> 
+                    <label>Comando:</label><input type="text" id="r${i}C" value="${s.c}" oninput="gen()"> 
+                    <div style="display:grid; grid-template-columns: 1fr 1fr 0.6fr; gap:5px;"> 
+                        <div><label>Cantidad</label><input type="number" id="r${i}B" value="${s.b}" oninput="gen()"></div>
+                        <div><label>Modo</label><select id="r${i}M" onchange="gen()"><option value="mult" ${s.m==='mult'?'selected':''}>Multiplicar</option><option value="sum" ${s.m==='sum'?'selected':''}>Fijo</option></select></div>
+                        <div><label>Color</label><input type="text" id="r${i}Color" value="${s.col}" oninput="gen()"></div>
+                    </div> 
+                </div>`; 
+            } 
+        } 
+
+        function toggleRew(id) { saveAllData(); rewardsState[id] = !rewardsState[id]; initRewards(); gen(); } 
+        function checkLv(input, lv) { if(!input || input.trim()==="") return true; return input.split(',').map(n=>parseInt(n.trim())).includes(lv); } 
+
+        function gen() { 
+            const patternKey = document.getElementById('patternSelect').value; 
+            const slots = PATTERNS[patternKey]; 
+            let batchInput = Math.min(parseInt(document.getElementById('batch').value)||1, slots.length); 
+            const slotsUsed = slots.slice(0, batchInput); 
+            const grid = document.getElementById('invPreview'); grid.innerHTML = ''; 
+
+            const loreLines = document.getElementById('loreMulti').value.split('\n');
+            const tRew = document.getElementById('titleRew').value;
+            const tReq = document.getElementById('titleReq').value;
+            
+            // Fusión Botón/Icono
+            const fullLocked = document.getElementById('btnLocked').value;
+            const fullClaim = document.getElementById('btnClaim').value;
+            const fullDone = document.getElementById('btnDone').value;
+            
+            // Materiales
+            const mLocked = document.getElementById('matLocked').value;
+            const mClaim = document.getElementById('matClaim').value;
+            const mDone = document.getElementById('matDone').value;
+
+            for(let i=0; i<54; i++) { 
+                const d = document.createElement('div'); 
+                const isUsed = slotsUsed.indexOf(i);
+                if (isUsed !== -1) { d.className = 'slot active'; d.innerText = isUsed + 1; } 
+                else { d.className = 'slot empty'; }
+                grid.appendChild(d); 
+            } 
+
+            let res = `panels:\n  ${document.getElementById('panelID').value}:\n    perm: ${document.getElementById('openPerm').value}\n    rows: 6\n    title: '${document.getElementById('panelTitle').value}'\n    commands:\n`;
+            document.getElementById('openCmds').value.split(',').forEach(c => { if(c.trim()) res += `    - ${c.trim()}\n`; });
+            res += `    empty: ${document.getElementById('emptyMat').value}\n    item:\n`; 
+
+            for(let i=0; i < batchInput; i++) { 
+                let lv = i+1, sl = slotsUsed[i], baseP = document.getElementById('permBase').value; 
+                let reqs = []; 
+                for(let r=1; r<=5; r++){ 
+                    let ph = document.getElementById(`req${r}P`).value; 
+                    if(ph && checkLv(document.getElementById(`req${r}L`).value, lv)) reqs.push({ t:document.getElementById(`req${r}T`).value, p:ph, goal: (parseInt(document.getElementById(`req${r}B`).value)||0)+(parseInt(document.getElementById(`req${r}A`).value)||0)*i, col:document.getElementById(`req${r}Color`).value }); 
+                } 
+                let currentRewards = []; 
+                for(let r=1; r<=10; r++){ 
+                    if(rewardsState[r] && checkLv(document.getElementById(`r${r}Lvs`).value, lv)){ 
+                        let val = (document.getElementById(`r${r}M`).value==='mult') ? (parseInt(document.getElementById(`r${r}B`).value)*lv) : parseInt(document.getElementById(`r${r}B`).value); 
+                        currentRewards.push({ label: document.getElementById(`r${r}L`).value, val: val, cmd: document.getElementById(`r${r}C`).value, col: document.getElementById(`r${r}Color`).value }); 
+                    } 
+                } 
+
+                const buildLore = (sp, status) => { 
+                    let l = "";
+                    loreLines.forEach(line => { l += `\n${" ".repeat(sp)}- '${line.replace(/'/g, "''")}'`; });
+                    if(currentRewards.length > 0) { 
+                        l += `\n${" ".repeat(sp)}- ' '\n${" ".repeat(sp)}- '${tRew}'`; 
+                        currentRewards.forEach(re => { l += `\n${" ".repeat(sp)}- '  &7• &f${re.label}: ${re.col}${re.val}'`; }); 
+                    } 
+                    if(reqs.length > 0) { 
+                        l += `\n${" ".repeat(sp)}- ' '\n${" ".repeat(sp)}- '${tReq}'`; 
+                        reqs.forEach(req => { 
+                            if (status === 'done') l += `\n${" ".repeat(sp)}- '  &7• &f${req.t}: ${req.col}${req.goal}'`;
+                            else l += `\n${" ".repeat(sp)}- '  &7• &f${req.t}: &c${req.p}&7/${req.col}${req.goal}'`;
+                        }); 
+                    } 
+                    let footer = (status==='done') ? fullDone : (status==='unlocked' ? fullClaim : fullLocked);
+                    l += `\n${" ".repeat(sp)}- ''\n${" ".repeat(sp)}- '${footer}'`; 
+                    return l; 
+                }; 
+
+                let conds = ""; 
+                reqs.forEach((req, idx) => { 
+                    conds += `\n          value${idx}: '${req.p} ISGREATER'`;
+                    conds += `\n          compare${idx}: '${req.goal}${idx===reqs.length-1?"":" AND"}'`; 
+                }); 
+
+                res += `      '${sl}':\n        material: ${mLocked}\n        name: '&cNivel ${lv} &7[BLOQUEADO]'\n        lore:${buildLore(8, 'locked')}\n        commands:\n        - sound= ENTITY_VILLAGER_NO 10 1\n        - msg= ${document.getElementById('msgError').value.replace('{lv}', lv)}\n        has0:\n          value0: '%cp-player-name% HASPERM'\n          compare0: ${baseP}.${lv} \n          material: ${mDone}\n          name: '&aNivel ${lv} &b[COMPLETADO]'\n          lore:${buildLore(10, 'done')}\n        has1:${conds}\n          material: ${mClaim}\n          name: '&eNivel ${lv} &f[RECLAMAR]'\n          lore:${buildLore(10, 'unlocked')}\n          commands:\n          - sound= ENTITY_PLAYER_LEVELUP 10 1\n          - msg= ${document.getElementById('msgSuccess').value.replace('{lv}', lv)}\n          - console= ${document.getElementById('lpCmd').value.replace('{perm}', baseP).replace('{lv}', lv)}\n`; 
+                currentRewards.forEach(re => { res += `          - console= ${re.cmd.replace('{val}', re.val).replace('{lv}', lv)}\n`; });
+                res += `          - delay= 5 refresh\n`; 
+            } 
+            document.getElementById('output').innerText = res; 
+        } 
+
+        function copyText() {
+            const text = document.getElementById('output').innerText;
+            const textArea = document.createElement("textarea"); textArea.value = text; document.body.appendChild(textArea); textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);
+            const btn = document.querySelector('.copy-btn'); btn.innerText = "¡COPIADO!"; setTimeout(() => { btn.innerText = "COPIAR YAML"; }, 1500);
+        }
+
+        initReqs(); initRewards(); gen(); 
+    </script> 
+</body> 
+</html>
