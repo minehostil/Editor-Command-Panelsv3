@@ -1,0 +1,291 @@
+<!DOCTYPE html> 
+<html lang="es"> 
+<head> 
+    <meta charset="UTF-8"> 
+    <title>Generador de Recompensas</title> 
+    <style> 
+        :root { --primary: #ffffff; --accent: #5DFA30; --bg-settings: #29364A; --input-bg: #aaaaaa; --card-bg: rgba(255, 255, 255, 0.07); --reset: #ef4444; --code-bg: #0d1117; } 
+        body { font-family: 'Inter', sans-serif; background: #1a1a1a; display: flex; height: 100vh; margin: 0; overflow: hidden; } 
+        .settings { width: 850px; background: var(--bg-settings); padding: 20px; box-shadow: 4px 0 20px rgba(0,0,0,0.4); overflow-y: auto; height: 100%; color: white; border-right: 1px solid rgba(255,255,255,0.1); } 
+        .code-view { flex-grow: 1; background: var(--code-bg); color: #c9d1d9; padding: 25px; overflow-y: auto; position: relative; } 
+        .card { background: var(--card-bg); border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid var(--accent); } 
+        .section-title { font-size: 0.8rem; font-weight: 800; color: var(--accent); margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.15); display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; } 
+        label { display: block; font-size: 0.65rem; font-weight: bold; margin-bottom: 2px; color: #cbd5e1; margin-top: 5px; } 
+        input, select, textarea { width: 100%; padding: 7px; margin-bottom: 4px; border: 1px solid #111; border-radius: 4px; box-sizing: border-box; font-size: 0.75rem; background-color: var(--input-bg); color: #000; font-weight: 600; } 
+        .inv-grid { display: grid; grid-template-columns: repeat(9, 28px); gap: 2px; background: #000; padding: 5px; border: 3px solid #222; width: fit-content; margin: 0 auto 15px; } 
+        .slot { width: 28px; height: 28px; background: #333; border: 1px solid #444; font-size: 9px; display: flex; align-items: center; justify-content: center; color: #eee; } 
+        .slot.active { background: var(--accent); color: #000; font-weight: bold; border: 1px solid #fff; } 
+        .copy-btn { background: var(--accent); color: #000; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; position: sticky; top: 0; float: right; z-index: 100; box-shadow: 0 4px 0 #3eb020; transition: 0.2s; } 
+        pre { font-family: 'Fira Code', monospace; font-size: 10px; line-height: 1.3; margin-top: 40px; color: #79c0ff; } 
+        .switch { cursor: pointer; font-size: 9px; padding: 4px 8px; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; min-width: 160px; transition: 0.2s; } 
+        .switch.on { background: var(--accent); color: #000; } 
+        .switch.off { background: var(--reset); color: #fff; } 
+        .req-row-grid { display: grid; grid-template-columns: 1.2fr 1.2fr 0.4fr 0.4fr 0.4fr 0.8fr; gap: 5px; margin-bottom: 5px; } 
+    </style> 
+</head> 
+<body> 
+    <div class="settings"> 
+        <div class="header-bar" style="display:flex; justify-content: space-between; align-items: center; margin-bottom:15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;"> 
+            <h2 style="margin:0; font-size: 1.2rem;">GENERADOR DE RECOMPENSAS v55.0</h2> 
+            <button onclick="location.reload()" style="background:var(--reset); color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size: 10px; font-weight: bold;">RESETEAR</button> 
+        </div> 
+
+        <div class="card" style="border-left-color: #0ea5e9;"> 
+            <div class="section-title">⚙️ Ajustes de Panel</div> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <div><label>ID del Panel:</label><input type="text" id="panelID" value="nombre_panel" oninput="gen()"></div> 
+                <div><label>Permiso Apertura:</label><input type="text" id="openPerm" value="default" oninput="gen()"></div> 
+            </div> 
+            <label>Título Visual:</label><input type="text" id="panelTitle" value="&8Titulo del Panel" oninput="gen()"> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <div><label>Comando de Apertura (/cmd):</label><input type="text" id="openCmds" value="recompensas" oninput="gen()"></div> 
+                <div><label>Comandos Open (sep ,):</label><input type="text" id="onOpenCmds" value="refresh" oninput="gen()"></div> 
+            </div> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <div><label>Mensaje Éxito (msg=):</label><input type="text" id="msgSuccess" value="&a&lRECOMPENSA &8» &fHas reclamado el nivel &a#{lv}" oninput="gen()"></div> 
+                <div><label>Mensaje Fallo (msg=):</label><input type="text" id="msgFail" value="&c&lRECOMPENSA &8» &fNo cumples los requisitos" oninput="gen()"></div> 
+            </div> 
+            <label>Material Fondo:</label><input type="text" id="emptyMat" value="BLACK_STAINED_GLASS_PANE" oninput="gen()"> 
+        </div> 
+
+        <div class="card" style="border-left-color: #ef4444;"> 
+            <div class="section-title">🔑 Permisos y LuckPerms</div> 
+            <label>Permiso Base (.{lv}):</label><input type="text" id="permBase" value="permiso.nivel" oninput="gen()"> 
+            <label>Comando LP (set):</label><input type="text" id="lpCmd" value="lp user %cp-player-name% permission set {perm}.{lv} true" oninput="gen()"> 
+        </div> 
+
+        <div class="card" style="border-left-color: #f97316;"> 
+            <div class="section-title">🎨 Visualización de Estados</div> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <div><label>BLOQUEADO Mat/Nombre:</label><input type="text" id="matLocked" value="RED_STAINED_GLASS_PANE" oninput="gen()"><input type="text" id="nameLocked" value="&cNivel #{lv} &7[BLOQUEADO]" oninput="gen()"></div> 
+                <div><label>RECLAMAR Mat/Nombre:</label><input type="text" id="matUnlocked" value="ORANGE_STAINED_GLASS_PANE" oninput="gen()"><input type="text" id="nameUnlocked" value="&eNivel #{lv} &f[RECLAMAR]" oninput="gen()"></div> 
+            </div> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <div><label>HECHO Material:</label><input type="text" id="matDone" value="LIME_STAINED_GLASS_PANE" oninput="gen()"></div> 
+                <div><label>HECHO Nombre:</label><input type="text" id="nameDone" value="&aNivel #{lv} &b[COMPLETADO]" oninput="gen()"></div> 
+            </div> 
+        </div> 
+
+        <div class="card" style="border-left-color: #3b82f6;"> 
+            <div class="section-title">🗺️ Layout e Inventario</div> 
+            <div class="inv-grid" id="invPreview"></div> 
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"> 
+                <select id="patternSelect" onchange="gen()"> 
+                    <option value="custom_path">Mi Patrón Especial (21 slots)</option> 
+                    <option value="snake">Serpiente</option> 
+                    <option value="zigzag">Zig-Zag</option> 
+                    <option value="borders">Bordes</option> 
+                    <option value="pro">Centrales</option> 
+                </select> 
+                <input type="number" id="batch" value="21" oninput="gen()"> 
+            </div> 
+        </div> 
+
+        <div id="reqsArea"></div> 
+        <div id="rewardsContainer"></div> 
+    </div> 
+
+    <div class="code-view"> 
+        <button class="copy-btn" onclick="copyText()">COPIAR YAML</button> 
+        <pre id="output"></pre> 
+    </div> 
+
+    <script> 
+        const PATTERNS = { 
+            custom_path: [9,10,19,28,37,38,39,30,21,12,13,14,23,32,41,42,43,34,25,16,17], 
+            snake: [10,11,12,13,14,15,16,25,24,23,22,21,20,19,28,29,30,31,32,33,34,43,42,41,40,39,38,37], 
+            zigzag: [10,20,12,22,14,24,16,28,38,30,40,32,42,34], 
+            borders: [1,2,3,4,5,6,7,16,25,34,43,52,51,50,49,48,47,46,37,28,19,10], 
+            pro: [10,11,12,13,14,15,16,19,20,21,22,23,24,25,28,29,30,31,32,33,34,37,38,39,40,41,42,43] 
+        }; 
+
+        let rewardsState = { 1:true, 2:true, 3:false, 4:false, 5:false, 6:false, 7:false, 8:false, 9:false, 10:false }; 
+        let persistentData = { rewards: {}, reqs: {} }; 
+
+        function saveAllData() { 
+            for(let r=1; r<=5; r++) { 
+                if(document.getElementById(`req${r}T`)) { 
+                    persistentData.reqs[r] = { 
+                        t: document.getElementById(`req${r}T`).value, 
+                        p: document.getElementById(`req${r}P`).value, 
+                        b: document.getElementById(`req${r}B`).value, 
+                        a: document.getElementById(`req${r}A`).value, 
+                        col: document.getElementById(`req${r}Col`).value, 
+                        l: document.getElementById(`req${r}L`).value 
+                    }; 
+                } 
+            } 
+            for(let i=1; i<=10; i++) { 
+                if(document.getElementById(`r${i}Lvs`)) { 
+                    persistentData.rewards[i] = { 
+                        lvs: document.getElementById(`r${i}Lvs`).value, 
+                        l: document.getElementById(`r${i}L`).value, 
+                        c: document.getElementById(`r${i}C`).value, 
+                        b: document.getElementById(`r${i}B`).value, 
+                        m: document.getElementById(`r${i}M`).value 
+                    }; 
+                } 
+            } 
+        } 
+
+        function initReqs() { 
+            const area = document.getElementById('reqsArea'); 
+            area.className = "card"; 
+            area.style.borderLeftColor = "#16a34a"; 
+            area.innerHTML = '<div class="section-title">📊 Requisitos Progresivos</div>'; 
+            for(let r=1; r<=5; r++) { 
+                const s = persistentData.reqs[r] || { t: r==1?'Requisito 1':'', p: r==1?'%variable%':'', b: r==1?10:0, a: r==1?10:0, col: '#5DFA30', l: '' }; 
+                area.innerHTML += `<div class="req-row-grid"> 
+                    <input type="text" id="req${r}T" value="${s.t}" placeholder="Título" oninput="gen()"> 
+                    <input type="text" id="req${r}P" value="${s.p}" placeholder="Variable" oninput="gen()"> 
+                    <input type="number" id="req${r}B" value="${s.b}" oninput="gen()"> 
+                    <input type="number" id="req${r}A" value="${s.a}" oninput="gen()"> 
+                    <input type="text" id="req${r}Col" value="${s.col}" oninput="gen()"> 
+                    <input type="text" id="req${r}L" value="${s.l}" placeholder="Lvs" oninput="gen()"> 
+                </div>`; 
+            } 
+        } 
+
+        function initRewards() { 
+            const container = document.getElementById('rewardsContainer'); 
+            container.innerHTML = ""; 
+            for(let i=1; i<=10; i++) { 
+                const s = persistentData.rewards[i] || { 
+                    lvs: '', 
+                    l: i==1?'Dinero':(i==2?'Tokens':''), 
+                    c: i==1?'eco give %cp-player-name% {val}':(i==2?'tokens give %cp-player-name% {val}':''), 
+                    b: i==1?100:(i==2?1:0), 
+                    m: 'mult' 
+                }; 
+                container.innerHTML += ` 
+                <div class="card" style="border-left-color: ${rewardsState[i]?'#5DFA30':'#ef4444'}"> 
+                    <div class="section-title" style="display:flex; justify-content:space-between; width:100%;">Recompensa #${i}  
+                        <span class="switch ${rewardsState[i]?'on':'off'}" onclick="toggleRew(${i})">${rewardsState[i]?'ACTIVA':'INACTIVA'}</span> 
+                    </div> 
+                    <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:5px;"> 
+                        <div><label>Niveles:</label><input type="text" id="r${i}Lvs" value="${s.lvs}" placeholder="Todos" oninput="gen()"></div> 
+                        <div><label>Etiqueta:</label><input type="text" id="r${i}L" value="${s.l}" oninput="gen()"></div> 
+                    </div> 
+                    <label>Comando:</label><input type="text" id="r${i}C" value="${s.c}" oninput="gen()"> 
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"> 
+                        <input type="number" id="r${i}B" value="${s.b}" oninput="gen()"> 
+                        <select id="r${i}M" onchange="gen()"> 
+                            <option value="mult" ${s.m==='mult'?'selected':''}>Multiplicar</option> 
+                            <option value="sum" ${s.m==='sum'?'selected':''}>Suma Fija</option> 
+                        </select> 
+                    </div> 
+                </div>`; 
+            } 
+        } 
+
+        function toggleRew(id) { 
+            saveAllData(); 
+            rewardsState[id] = !rewardsState[id]; 
+            initRewards(); 
+            gen(); 
+        } 
+
+        function checkLv(input, lv) { 
+            if(!input || input.trim()==="") return true; 
+            return input.split(',').map(n=>parseInt(n.trim())).includes(lv); 
+        } 
+
+        function gen() { 
+            const patternKey = document.getElementById('patternSelect').value; 
+            const slots = PATTERNS[patternKey]; 
+            let batchInput = Math.min(parseInt(document.getElementById('batch').value)||1, slots.length); 
+            const grid = document.getElementById('invPreview'); 
+            grid.innerHTML = ''; 
+            const slotsUsed = slots.slice(0, batchInput); 
+            for(let i=0; i<54; i++) { 
+                const d = document.createElement('div'); 
+                d.className = 'slot ' + (slotsUsed.includes(i) ? 'active' : 'empty'); 
+                if(slotsUsed.includes(i)) d.innerText = slotsUsed.indexOf(i)+1; 
+                grid.appendChild(d); 
+            } 
+            let res = `panels:\n  ${document.getElementById('panelID').value}:\n    perm: ${document.getElementById('openPerm').value}\n    rows: 6\n    commands:\n`; 
+            document.getElementById('openCmds').value.split(',').forEach(c => { if(c.trim()) res += `      - ${c.trim()}\n`; }); 
+            res += `    commands-on-open:\n`; 
+            document.getElementById('onOpenCmds').value.split(',').forEach(c => { if(c.trim()) res += `      - ${c.trim()}\n`; }); 
+            res += `    title: '${document.getElementById('panelTitle').value}'\n    empty: ${document.getElementById('emptyMat').value}\n    item:\n`; 
+            for(let i=0; i < batchInput; i++) { 
+                let lv = i+1, sl = slotsUsed[i], baseP = document.getElementById('permBase').value; 
+                let reqs = []; 
+                for(let r=1; r<=5; r++){ 
+                    let ph = document.getElementById(`req${r}P`).value, lvL = document.getElementById(`req${r}L`).value; 
+                    if(ph && checkLv(lvL, lv)) reqs.push({ t:document.getElementById(`req${r}T`).value, p:ph, goal: (parseInt(document.getElementById(`req${r}B`).value)||0)+(parseInt(document.getElementById(`req${r}A`).value)||0)*i, col:document.getElementById(`req${r}Col`).value }); 
+                } 
+                let currentRewards = []; 
+                for(let r=1; r<=10; r++){ 
+                    if(rewardsState[r] && checkLv(document.getElementById(`r${r}Lvs`).value, lv)){ 
+                        let val = (document.getElementById(`r${r}M`).value==='mult') ? (parseInt(document.getElementById(`r${r}B`).value)*lv) : parseInt(document.getElementById(`r${r}B`).value); 
+                        currentRewards.push({ label: document.getElementById(`r${r}L`).value, val: val, cmd: document.getElementById(`r${r}C`).value }); 
+                    } 
+                } 
+                const buildLore = (sp, status) => { 
+                    let l = `\n${" ".repeat(sp)}- '&8ɪɴꜰᴏʀᴍᴀᴄɪᴏɴ'\n${" ".repeat(sp)}- ' '\n${" ".repeat(sp)}- '&fDesbloquea esta recompensa'\n${" ".repeat(sp)}- '&fcompletando las tareas.'`; 
+                    if(currentRewards.length > 0) { l += `\n${" ".repeat(sp)}- ' '\n${" ".repeat(sp)}- '#AEFAB4Recompensas:'`; currentRewards.forEach(re => { l += `\n${" ".repeat(sp)}- '  &7• &f${re.label}: #5DFA30${re.val}'`; }); } 
+                    if(reqs.length > 0) { l += `\n${" ".repeat(sp)}- ' '\n${" ".repeat(sp)}- '#5DFA30Requisitos:'`; reqs.forEach(req => { l += (status==='done') ? `\n${" ".repeat(sp)}- '  ${req.col}• &f${req.t}: #AEFAB4${req.goal}'` : `\n${" ".repeat(sp)}- '  ${req.col}• &f${req.t}: &c${req.p}&7/#AEFAB4${req.goal}'`; }); } 
+                    l += `\n${" ".repeat(sp)}- ''\n${" ".repeat(sp)}- '#AEFAB4➥ ${(status==='done') ? '&aNivel completado' : (status==='unlocked' ? '&eClic para reclamar!' : '&cNo cumples los requisitos')}'`; 
+                    return l; 
+                }; 
+                const getCmds = (sp) => { 
+                    let c = `\n${" ".repeat(sp)}- console= ${document.getElementById('lpCmd').value.replace('{perm}', baseP).replace('{lv}', lv)}`; 
+                    currentRewards.forEach(re => { let fC = re.cmd.replace('{val}', re.val).replace('{lv}', lv); c += `\n${" ".repeat(sp)}- ${fC.includes('=')?fC:'console= '+fC}`; }); 
+                    c += `\n${" ".repeat(sp)}- msg= ${document.getElementById('msgSuccess').value.replace('{lv}', lv)}`; 
+                    return c; 
+                }; 
+                let conds = ""; 
+                reqs.forEach((req, idx) => { conds += `\n        value${idx}: '${req.p} ISGREATER'\n        compare${idx}: '${req.goal}${idx===reqs.length-1?"":" AND"}'`; }); 
+                res += `      '${sl}':\n        material: ${document.getElementById('matLocked').value}\n        name: '${document.getElementById('nameLocked').value.replace('{lv}', lv)}'\n        lore:${buildLore(8, 'locked')}\n        commands:\n          - sound= ENTITY_VILLAGER_NO 10 1\n          - msg= ${document.getElementById('msgFail').value}\n        has0:\n          value0: '%cp-player-name% HASPERM'\n          compare0: ${baseP}.${lv}\n          material: ${document.getElementById('matDone').value}\n          name: '${document.getElementById('nameDone').value.replace('{lv}', lv)}'\n          lore:${buildLore(10, 'done')}\n        has1:${conds}\n          material: ${document.getElementById('matUnlocked').value}\n          name: '${document.getElementById('nameUnlocked').value.replace('{lv}', lv)}'\n          lore:${buildLore(10, 'unlocked')}\n          commands:\n            - sound= ENTITY_PLAYER_LEVELUP 10 1${getCmds(12)}\n            - delay= 5 refresh\n`; 
+            } 
+            document.getElementById('output').innerText = res; 
+        } 
+
+        // SISTEMA DE COPIADO HÍBRIDO (FIX)
+        function copyText() {
+            const text = document.getElementById('output').innerText;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    confirmarCopiado();
+                }).catch(() => fallbackCopyText(text));
+            } else {
+                fallbackCopyText(text);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                confirmarCopiado();
+            } catch (err) {
+                console.error('Error al copiar', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function confirmarCopiado() {
+            const btn = document.querySelector('.copy-btn');
+            const originalText = btn.innerText;
+            btn.innerText = "¡COPIADO!";
+            btn.style.background = "#ffffff";
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.background = "";
+            }, 1500);
+        }
+
+        initReqs(); 
+        initRewards(); 
+        gen(); 
+    </script> 
+</body> 
+</html>
