@@ -1,0 +1,2730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Generador de Recompensas</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --accent: #5DFA30;
+    --accent2: #00e5ff;
+    --bg: #1c1c28;
+    --surface: #24243a;
+    --surface2: #2d2d48;
+    --border: rgba(255,255,255,0.10);
+    --text: #e2e8f0;
+    --muted: #7a8aa0;
+    --red: #ef4444;
+    --orange: #f97316;
+    --purple: #a855f7;
+    --blue: #3b82f6;
+    --green: #22c55e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 64px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    gap: 8px;
+    z-index: 10;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+
+  .sidebar-logo {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; color: #000;
+    margin-bottom: 8px;
+    box-shadow: 0 0 20px rgba(93,250,48,0.3);
+  }
+
+  .nav-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: all 0.18s;
+    position: relative;
+  }
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active { background: rgba(93,250,48,0.12); color: var(--accent); border-color: rgba(93,250,48,0.3); }
+  .nav-btn .tooltip {
+    position: absolute; left: 58px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 6px;
+    white-space: nowrap; pointer-events: none;
+    opacity: 0; transform: translateX(-4px);
+    transition: all 0.15s;
+    z-index: 100;
+  }
+  .nav-btn:hover .tooltip { opacity: 1; transform: translateX(0); }
+
+  .sidebar-sep {
+    width: 32px; height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+
+
+  /* ── PANEL AREA ── */
+  .panel-area {
+    flex: 1;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .panel-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .panel-title {
+    font-size: 16px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text);
+  }
+  .panel-badge {
+    font-size: 10px; font-weight: 700;
+    background: rgba(93,250,48,0.15);
+    color: var(--accent);
+    padding: 2px 8px; border-radius: 20px;
+    border: 1px solid rgba(93,250,48,0.25);
+  }
+
+  .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel-content::-webkit-scrollbar { width: 4px; }
+  .panel-content::-webkit-scrollbar-track { background: transparent; }
+  .panel-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── SECTION CARDS ── */
+  .sec-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .sec-card:hover { border-color: rgba(255,255,255,0.12); }
+
+  .sec-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .sec-head-left { display: flex; align-items: center; gap: 10px; }
+  .sec-icon {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .sec-label { font-size: 14px; font-weight: 700; }
+  .sec-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .sec-chevron {
+    font-size: 10px; color: var(--muted);
+    transition: transform 0.2s;
+  }
+  .sec-card.open .sec-chevron { transform: rotate(180deg); }
+
+  .sec-body {
+    max-height: 0; overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1);
+    border-top: 0px solid var(--border);
+  }
+  .sec-card.open .sec-body {
+    max-height: 2000px;
+    border-top: 1px solid var(--border);
+  }
+  .sec-body-inner { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── FIELDS ── */
+  .field-group { display: flex; flex-direction: column; gap: 3px; }
+  .field-group label {
+    font-size: 10px; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;
+    margin-bottom: 2px;
+  }
+  .field-row { display: grid; gap: 8px; }
+  .fr-2 { grid-template-columns: 1fr 1fr; }
+  .fr-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  input[type=text], input[type=number], select, textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: rgba(93,250,48,0.4);
+    box-shadow: 0 0 0 3px rgba(93,250,48,0.07);
+  }
+  textarea { height: 80px; resize: vertical; }
+  select option { background: var(--surface2); }
+
+  /* ── TOGGLE SWITCH ── */
+  .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+  .toggle {
+    width: 36px; height: 20px; position: relative;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .toggle input { display: none; }
+  .toggle-track {
+    width: 100%; height: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    transition: all 0.2s;
+  }
+  .toggle input:checked ~ .toggle-track {
+    background: rgba(93,250,48,0.2);
+    border-color: rgba(93,250,48,0.5);
+  }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  .toggle input:checked ~ .toggle-thumb {
+    background: var(--accent);
+    transform: translateX(16px);
+  }
+
+  /* ── REQ ROW ── */
+  .req-row {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .req-row-top { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .req-row-bot { display: grid; grid-template-columns: 1fr 1fr 0.6fr 0.6fr; gap: 12px; }
+
+  /* ── REWARD ROW ── */
+  .reward-row {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.2s, opacity 0.2s;
+  }
+  .reward-row.disabled { opacity: 0.45; }
+  .reward-row.enabled { border-color: rgba(93,250,48,0.25); }
+  .rew-head { display: flex; align-items: center; justify-content: space-between; }
+  .rew-num {
+    font-size: 10px; font-weight: 800;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+  }
+  .rew-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .rew-foot { display: grid; grid-template-columns: 0.7fr 0.7fr 0.5fr; gap: 12px; }
+
+  /* ── INV GRID ── */
+  .inv-wrap {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .inv-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 26px);
+    gap: 2px;
+  }
+  .inv-slot {
+    width: 26px; height: 26px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .inv-slot.active {
+    background: rgba(93,250,48,0.2);
+    border-color: rgba(93,250,48,0.6);
+    color: var(--accent);
+    font-weight: 800;
+    box-shadow: 0 0 6px rgba(93,250,48,0.2);
+  }
+
+  /* ── STATUS PILLS ── */
+  .states-grid { display: flex; flex-direction: column; gap: 10px; }
+  .state-pill {
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .state-pill .pill-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  }
+  .state-pill .pill-row2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .state-pill-label {
+    font-size: 9px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .sp-locked { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); }
+  .sp-locked .state-pill-label { color: var(--red); }
+  .sp-claim  { border-color: rgba(249,115,22,0.3); background: rgba(249,115,22,0.06); }
+  .sp-claim .state-pill-label  { color: var(--orange); }
+  .sp-done   { border-color: rgba(34,197,94,0.3);  background: rgba(34,197,94,0.06); }
+  .sp-done .state-pill-label   { color: var(--green); }
+
+  /* ── CODE VIEW ── */
+  .main-top {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    min-height: 0;
+    transition: flex 0.45s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* Footer */
+
+
+  .code-view {
+    flex-shrink: 0;
+    background: #14161f;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+  }
+
+  .code-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.02);
+  }
+  .code-tabs { display: flex; gap: 4px; }
+  .code-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+
+  .copy-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+    box-shadow: 0 2px 0 #3eb020, 0 0 20px rgba(93,250,48,0.2);
+  }
+  .copy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 #3eb020, 0 0 30px rgba(93,250,48,0.3); }
+  .copy-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 #3eb020; }
+  .copy-btn.copied { background: var(--accent2); box-shadow: 0 2px 0 #009ab8, 0 0 20px rgba(0,229,255,0.2); }
+
+  .code-body {
+    flex: 1;
+    overflow: auto;
+    padding: 20px 24px;
+  }
+  .code-body::-webkit-scrollbar { width: 5px; height: 5px; }
+  .code-body::-webkit-scrollbar-track { background: transparent; }
+  .code-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+  pre#output {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: #79c0ff;
+    white-space: pre;
+  }
+
+  /* line coloring */
+  pre#output { }
+
+  .code-filename {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .code-filename span { color: var(--accent); }
+
+  /* ── RESET BTN ── */
+  .reset-btn {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: var(--red);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all 0.18s;
+  }
+  .reset-btn:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); }
+
+  /* ── SECTION VIEWS ── */
+  .view { display: none; flex-direction: column; height: 100%; }
+  .view.active { display: flex; }
+
+  /* ── COLOR TAG ── */
+  .color-tag {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+    border: 1px solid rgba(255,255,255,0.2);
+    flex-shrink: 0;
+  }
+
+  /* ── SECTION DIVIDER ── */
+  .sdiv {
+    font-size: 9px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+
+  /* Scrollbar hidden sections */
+  .hidden-section { display: none; }
+
+  /* Animation */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  /* animations removed to prevent lag on dynamic content */
+
+  /* Code line highlight */
+  .yaml-key { color: #79c0ff; }
+  .yaml-val { color: #a5d6ff; }
+  .yaml-str { color: #a8d8a8; }
+
+  /* Mini stats bar */
+  .stats-bar {
+    display: flex; gap: 12px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.15);
+  }
+  .stat-item { display: flex; flex-direction: column; gap: 1px; }
+  .stat-label { font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-val { font-size: 13px; font-weight: 800; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+
+  /* Info row */
+  .info-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(93,250,48,0.08);
+    border: 1px solid rgba(93,250,48,0.2);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 10px; font-weight: 600; color: var(--accent);
+  }
+  /* PREVIEW PANEL */
+  .preview-panel { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface); }
+  .preview-bar { display: flex; align-items: center; justify-content: space-between; padding: 9px 18px; cursor: pointer; user-select: none; background: rgba(255,255,255,0.02); border-bottom: 1px solid transparent; transition: background 0.15s, border-color 0.2s; }
+  .preview-bar:hover { background: rgba(255,255,255,0.04); }
+  .preview-panel.open .preview-bar { border-bottom-color: var(--border); }
+  .preview-bar-left { display: flex; align-items: center; gap: 10px; }
+  .preview-bar-right { display: flex; align-items: center; gap: 14px; }
+  .preview-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px rgba(93,250,48,0.6); animation: pulse-glow 2s ease infinite; flex-shrink: 0; }
+  @keyframes pulse-glow { 0%,100% { opacity:1; box-shadow: 0 0 6px rgba(93,250,48,0.6); } 50% { opacity:0.6; box-shadow: 0 0 12px rgba(93,250,48,0.2); } }
+  .preview-bar-title { font-size: 11px; font-weight: 700; color: var(--text); }
+  .preview-badge { font-size: 9px; font-weight: 700; background: rgba(93,250,48,0.1); color: var(--accent); border: 1px solid rgba(93,250,48,0.2); padding: 2px 7px; border-radius: 20px; }
+  .preview-stats { display: flex; gap: 14px; font-size: 10px; color: var(--muted); font-family: "JetBrains Mono", monospace; }
+  .preview-stats b { color: var(--text); font-weight: 700; }
+  .preview-toggle-btn { display: flex; align-items: center; gap: 5px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 4px 10px; font-size: 10px; font-weight: 700; cursor: pointer; font-family: "Syne", sans-serif; transition: all 0.15s; pointer-events: none; }
+  .preview-bar:hover .preview-toggle-btn { border-color: rgba(93,250,48,0.3); color: var(--accent); background: rgba(93,250,48,0.08); }
+  #previewChevron { font-size: 8px; display: inline-block; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); }
+  .preview-panel.open #previewChevron { transform: rotate(0deg); }
+  .preview-panel:not(.open) #previewChevron { transform: rotate(180deg); }
+  .preview-body { overflow: hidden; max-height: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 0 18px; transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1), padding 0.45s; }
+  .preview-panel.open .preview-body { max-height: 65vh; padding: 0; }
+  .inv-legend { display: flex; gap: 16px; font-size: 10px; color: var(--muted); font-family: "JetBrains Mono", monospace; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+  .active-dot { background: rgba(93,250,48,0.2); border-color: rgba(93,250,48,0.6); box-shadow: 0 0 5px rgba(93,250,48,0.2); }
+
+  /* YAML preview body scroll */
+
+  .preview-body pre#output {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: #79c0ff;
+    white-space: pre;
+    padding: 16px 24px;
+    overflow: auto;
+    max-height: 65vh;
+    width: 100%;
+  }
+  .preview-body pre#output::-webkit-scrollbar { width: 5px; height: 5px; }
+  .preview-body pre#output::-webkit-scrollbar-track { background: transparent; }
+  .preview-body pre#output::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+
+  /* ── ADD BUTTON ── */
+  .add-btn {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%;
+    background: rgba(93,250,48,0.06);
+    border: 1px dashed rgba(93,250,48,0.3);
+    border-radius: 10px;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 700;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.3px;
+  }
+  .add-btn:hover {
+    background: rgba(93,250,48,0.12);
+    border-color: rgba(93,250,48,0.6);
+    box-shadow: 0 0 12px rgba(93,250,48,0.1);
+  }
+  .add-btn:active { transform: scale(0.98); }
+  .add-btn .add-icon {
+    width: 18px; height: 18px;
+    background: rgba(93,250,48,0.2);
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; line-height: 1;
+  }
+  /* Remove button on req/reward rows */
+  .row-remove-btn {
+    width: 22px; height: 22px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 6px;
+    color: var(--red);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .row-remove-btn:hover { background: rgba(239,68,68,0.25); border-color: rgba(239,68,68,0.5); }
+
+
+  /* ── CHECKBOX GROUP ── */
+  .checkbox-group {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 4px 0;
+  }
+  .check-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 11px; font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+    user-select: none;
+  }
+  .check-chip:hover { border-color: rgba(93,250,48,0.3); color: var(--text); }
+  .check-chip input[type=checkbox] { display: none; }
+  .check-chip:has(input:checked) {
+    background: rgba(93,250,48,0.12);
+    border-color: rgba(93,250,48,0.5);
+    color: var(--accent);
+  }
+
+
+  /* ── PANELTYPE DROPDOWN ── */
+  .pt-wrap { display: flex; flex-direction: column; gap: 0; position: relative; }
+  .pt-input-row { display: flex; gap: 8px; align-items: stretch; }
+  .pt-input-row input {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 9px 12px;
+    outline: none;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+  .pt-input-row input:focus { border-color: rgba(93,250,48,0.4); }
+  .pt-toggle-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 11px; font-weight: 700;
+    padding: 0 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .pt-toggle-btn:hover { border-color: rgba(93,250,48,0.4); color: var(--accent); }
+  .pt-toggle-btn.open { border-color: rgba(93,250,48,0.5); color: var(--accent); background: rgba(93,250,48,0.08); }
+  #ptChevron { font-size: 12px; transition: transform 0.2s; display: inline-block; }
+  .pt-toggle-btn.open #ptChevron { transform: rotate(180deg); }
+
+  .pt-dropdown {
+    display: none;
+    flex-direction: column;
+    background: var(--surface2);
+    border: 1px solid rgba(93,250,48,0.25);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 50;
+  }
+  .pt-dropdown.open { display: flex; }
+  .pt-option {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.13s;
+    gap: 12px;
+  }
+  .pt-option:last-child { border-bottom: none; }
+  .pt-option:hover { background: rgba(93,250,48,0.07); }
+  .pt-option.selected { background: rgba(93,250,48,0.1); }
+  .pt-option.selected .pt-opt-name { color: var(--accent); }
+  .pt-opt-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .pt-opt-desc {
+    font-size: 10px; color: var(--muted);
+    text-align: right;
+  }
+
+
+  /* ── HELP BOX ── */
+  .help-box {
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.13);
+    border-left: 3px solid rgba(0,229,255,0.5);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .help-box-title {
+    font-size: 10px; font-weight: 700;
+    color: var(--accent2);
+    text-transform: uppercase; letter-spacing: 0.6px;
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 5px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .help-box ul {
+    list-style: none;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .help-box ul li {
+    font-size: 11px;
+    color: #8899aa;
+    padding-left: 10px;
+    position: relative;
+    line-height: 1.45;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 400;
+  }
+  .help-box ul li::before {
+    content: '–';
+    position: absolute; left: 0;
+    color: rgba(0,229,255,0.5);
+  }
+  .help-box ul li b { color: #c8d8e8; font-weight: 600; }
+  .help-box ul li code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: rgba(255,255,255,0.07);
+    padding: 1px 5px; border-radius: 3px;
+    color: #a8d8a8;
+  }
+
+
+  /* ── CMD TOGGLE ROWS ── */
+  .cmd-row {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .cmd-row-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .cmd-row-head label.toggle { flex-shrink: 0; }
+  .cmd-preview {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    color: #a8d8a8;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: opacity 0.2s, color 0.2s;
+    flex: 1;
+    min-width: 0;
+  }
+  .cmd-preview.off {
+    color: var(--muted);
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+  .cmd-fields {
+    display: grid; grid-template-columns: 1fr 0.4fr 0.4fr; gap: 6px;
+    transition: opacity 0.2s;
+  }
+  .cmd-fields.off { opacity: 0.35; pointer-events: none; }
+
+
+  /* ── STATE CMD ROWS ── */
+  .state-cmds-label {
+    font-size: 10px; font-weight: 700;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-top: 4px;
+  }
+  .state-cmd-row {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .state-cmd-prefix {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent2);
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 52px;
+  }
+  .state-cmd-row input[type=text] {
+    flex: 1; min-width: 0;
+  }
+  .state-cmd-short {
+    width: 48px !important;
+    flex: none !important;
+    padding: 9px 6px !important;
+    text-align: center;
+  }
+
+
+  .state-extra-cmds { display: flex; flex-direction: column; gap: 4px; }
+  .state-extra-row {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .state-extra-row input { flex: 1; min-width: 0; }
+  .state-extra-remove {
+    width: 22px; height: 22px; flex-shrink: 0;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 5px; color: var(--red);
+    font-size: 11px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .state-extra-remove:hover { background: rgba(239,68,68,0.25); }
+  .state-add-cmd-btn {
+    display: flex; align-items: center; gap: 5px;
+    background: transparent;
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 10px; font-weight: 700;
+    padding: 5px 10px; cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+    justify-content: center;
+  }
+  .state-add-cmd-btn:hover {
+    border-color: rgba(93,250,48,0.35);
+    color: var(--accent);
+  }
+
+
+  /* ── ROWS SELECTOR ── */
+  .rows-selector {
+    display: flex; gap: 6px; margin-top: 4px;
+  }
+  .row-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .row-btn:hover { border-color: rgba(93,250,48,0.3); color: var(--text); }
+  .row-btn.active {
+    background: rgba(93,250,48,0.15);
+    border-color: rgba(93,250,48,0.6);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(93,250,48,0.2);
+  }
+  .rows-warning {
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--orange);
+    font-family: Arial, Helvetica, sans-serif;
+    background: rgba(249,115,22,0.08);
+    border: 1px solid rgba(249,115,22,0.25);
+    border-radius: 6px;
+    padding: 4px 10px;
+  }
+  /* ── EXTRA ITEMS ── */
+  .extra-item-card {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .extra-item-head {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .extra-item-num {
+    font-size: 10px; font-weight: 800;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+  }
+
+
+  .inv-slot.extra {
+    background: rgba(0,229,255,0.15);
+    border-color: rgba(0,229,255,0.5);
+    color: var(--accent2);
+    font-weight: 800;
+  }
+
+
+  .progress-wrap {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+  }
+  .progress-head-left { display: flex; align-items: center; gap: 10px; }
+  .progress-fields {
+    border-top: 1px solid var(--border);
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .progress-preview-box {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #a8d8a8;
+  }
+
+
+  .bar-credit {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .bar-credit-name {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+
+  .lang-btn { font-size: 16px; }
+
+</style>
+</head>
+<body>
+
+<div class="main-top">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">⚡</div>
+
+  <button class="nav-btn active" data-view="panel" onclick="switchView('panel', this)">
+    ⚙️
+    <span class="tooltip">Panel</span>
+  </button>
+  <button class="nav-btn" data-view="lore" onclick="switchView('lore', this)">
+    📝
+    <span class="tooltip">Lore & Botones</span>
+  </button>
+  <button class="nav-btn" data-view="reqs" onclick="switchView('reqs', this)">
+    📊
+    <span class="tooltip">Requisitos</span>
+  </button>
+  <button class="nav-btn" data-view="rewards" onclick="switchView('rewards', this)">
+    🎁
+    <span class="tooltip">Recompensas</span>
+  </button>
+
+  <div class="sidebar-sep"></div>
+
+  <button class="nav-btn" data-view="luckperms" onclick="switchView('luckperms', this)">
+    🔑
+    <span class="tooltip">LuckPerms</span>
+  </button>
+  <button class="nav-btn" data-view="layout" onclick="switchView('layout', this)">
+    🗺️
+    <span class="tooltip">Layout</span>
+  </button>
+  <div class="sidebar-sep"></div>
+  <button class="nav-btn lang-btn" id="langBtn" onclick="cycleLang()" title="Idioma">
+    <span id="langFlag">🇪🇸</span>
+    <span class="tooltip" id="langTooltip">Idioma: Español</span>
+  </button>
+  <button class="reset-btn" onclick="if(confirm(T.confirmReset||'¿Resetear todo?')) location.reload()" title="Resetear">
+    ↺
+  </button>
+</div>
+
+<!-- PANEL AREA -->
+<div class="panel-area">
+
+  <!-- VIEW: PANEL -->
+  <div class="view active" id="view-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title" id="hPanel">⚙️ Ajustes del Panel</div>
+      </div>
+      <div class="panel-badge" id="bPanel">PANEL</div>
+    </div>
+    <div class="panel-content">
+      <div class="help-box">
+        <div class="help-box-title">💡 <span id="hbTitlePanel">Cómo usar Ajustes del Panel</span></div>
+        <ul>
+          <li><b>ID del Panel:</b> identificador único en el YAML, sin espacios.</li>
+          <li><b>Permiso Default:</b> permiso requerido para abrir el panel. Usa <code>default</code> para todos.</li>
+          <li><b>Comandos de Apertura:</b> separados por coma, ej. <code>rewards, r</code>.</li>
+          <li><b>commands-on-open:</b> comandos de consola que se ejecutan cada vez que se abre el panel, uno por línea.</li>
+          <li><b>panelType:</b> <code>static</code> no refresca, <code>nocommand</code> desactiva comandos de apertura, <code>unclosable</code> bloquea ESC.</li>
+          <li><b>Fondo:</b> material que rellena los slots vacíos del inventario.</li>
+        </ul>
+      </div>
+      <div class="field-row fr-2">
+        <div class="field-group">
+          <label id="lblPanelID">ID del Panel</label>
+          <input type="text" id="panelID" value="nombre_panel" oninput="debouncedGen()">
+        </div>
+        <div class="field-group">
+          <label id="lblOpenPerm">Permiso Default</label>
+          <input type="text" id="openPerm" value="default" oninput="debouncedGen()">
+        </div>
+      </div>
+      <div class="field-group">
+        <label id="lblPanelTitle">Título del Menú</label>
+        <input type="text" id="panelTitle" value="&8Menu recompensas" oninput="debouncedGen()">
+      </div>
+      <div class="field-row fr-2">
+        <div class="field-group">
+          <label id="lblOpenCmds">Comandos de Apertura</label>
+          <input type="text" id="openCmds" value="recompensas, rewards" oninput="debouncedGen()">
+        </div>
+        <div class="field-group">
+          <label id="lblEmptyMat">Fondo (Material)</label>
+          <input type="text" id="emptyMat" value="BLACK_STAINED_GLASS_PANE" oninput="debouncedGen()">
+        </div>
+      </div>
+      <div class="field-group">
+        <label id="lblOpenOnCmds">Comandos al Abrir (commands-on-open)</label>
+        <textarea id="openOnCmds" oninput="debouncedGen()" placeholder="Un comando por línea" data-ph="openOnCmds"></textarea>
+      </div>
+      <div class="field-group">
+        <label id="lblPanelType">Tipo de Panel (panelType)</label>
+        <div class="pt-wrap">
+          <div class="pt-input-row">
+            <input type="text" id="panelTypeInput" placeholder="Escribe o elige una opción..." id="ptInputPlaceholder" oninput="debouncedGen()" readonly>
+            <button class="pt-toggle-btn" onclick="togglePtDropdown()" id="ptToggleBtn" type="button">
+              <span id="ptChevron">▾</span> <span id="ptOptionsLabel">Opciones</span>
+            </button>
+          </div>
+          <div class="pt-dropdown" id="ptDropdown">
+            <div class="pt-option" onclick="selectPtOption('static')">
+              <span class="pt-opt-name">static</span>
+              <span class="pt-opt-desc" id="ptDesc_static">Panel estático, no se refresca</span>
+            </div>
+            <div class="pt-option" onclick="selectPtOption('nocommand')">
+              <span class="pt-opt-name">nocommand</span>
+              <span class="pt-opt-desc" id="ptDesc_nocommand">Sin comandos de apertura</span>
+            </div>
+            <div class="pt-option" onclick="selectPtOption('nocommandregister')">
+              <span class="pt-opt-name">nocommandregister</span>
+              <span class="pt-opt-desc" id="ptDesc_nocommandregister">No registra los comandos al servidor</span>
+            </div>
+            <div class="pt-option" onclick="selectPtOption('unmovable')">
+              <span class="pt-opt-name">unmovable</span>
+              <span class="pt-opt-desc" id="ptDesc_unmovable">Items no se pueden mover</span>
+            </div>
+            <div class="pt-option" onclick="selectPtOption('unclosable')">
+              <span class="pt-opt-name">unclosable</span>
+              <span class="pt-opt-desc" id="ptDesc_unclosable">El panel no se puede cerrar con ESC</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-label" id="statLblID">ID</div><div class="stat-val" id="stat-id">nombre_panel</div></div>
+      <div class="stat-item"><div class="stat-label" id="statLblPerm">Perm</div><div class="stat-val" id="stat-perm">default</div></div>
+    </div>
+  </div>
+
+  <!-- VIEW: LORE -->
+  <div class="view" id="view-lore">
+    <div class="panel-header">
+      <div class="panel-title" id="hLore">📝 Lore & Botones</div>
+      <div class="panel-badge" id="bLore">LORE</div>
+    </div>
+    <div class="panel-content">
+      <div class="help-box">
+        <div class="help-box-title">💡 <span id="hbTitleLore">Cómo usar Lore & Botones</span></div>
+        <ul>
+          <li><b>Lore Superior:</b> texto visible en todos los slots. Soporta <code>&</code> y <code>#HEX</code> para colores.</li>
+          <li><b>Mostrar progreso:</b> en lugar de <code>%placeholder%/requisito</code>, muestra el valor requerido con el progreso actual del jugador al lado. Ej: <code>&fDinero: &a1000 &7(llevás %vault_eco_balance%)</code>. Puedes personalizar el color, el texto antes (<code>llevás </code>) y después (<code>)</code>) del placeholder.</li>
+          <li><b>Comandos de estado:</b> cada estado (Bloqueado, Reclamar, Completado) tiene su propio <code>msg=</code> y <code>sound=</code>.</li>
+          <li><b>Añadir comando:</b> agrega líneas extra al bloque <code>commands:</code> de cada estado, ej. <code>console= eco give ...</code>.</li>
+          <li><b>Estados:</b> Bloqueado muestra requisitos faltantes, Reclamar ejecuta las recompensas, Completado confirma el nivel ya reclamado.</li>
+        </ul>
+      </div>
+      <div class="field-group">
+        <label id="lblLoreMulti">Lore Superior</label>
+        <textarea id="loreMulti" oninput="debouncedGen()">&8ɪɴꜰᴏʀᴍᴀᴄɪᴏɴ
+ 
+&fDesbloquea esta recompensa
+&fcompletando las tareas.</textarea>
+      </div>
+      <div class="field-row fr-2">
+        <div class="field-group">
+          <label id="lblTitleRew">Texto Recompensas</label>
+          <input type="text" id="titleRew" value="#AEFAB4Recompensas:" oninput="debouncedGen()">
+        </div>
+        <div class="field-group">
+          <label id="lblTitleReq">Texto Requisitos</label>
+          <input type="text" id="titleReq" value="#5DFA30Requisitos:" oninput="debouncedGen()">
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-head">
+          <div class="progress-head-left">
+            <label class="toggle">
+              <input type="checkbox" id="showProgress" onchange="toggleProgressFields();gen()">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+            <div>
+              <div style="font-size:12px; font-weight:700; color:var(--text);" id="lblShowProgress">Mostrar progreso en requisitos</div>
+              <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:2px;" id="progressPreview">&amp;7• &amp;fDinero: &amp;a1000 &amp;7(llevás %vault_eco_balance%)</div>
+            </div>
+          </div>
+        </div>
+        <div class="progress-fields" id="progressFields" style="display:none; flex-direction:column; gap:8px;">
+          <div class="field-row fr-2">
+            <div class="field-group">
+              <label id="lblProgColor">Color del texto extra</label>
+              <input type="text" id="progColor" value="&7" oninput="updateProgressPreview();debouncedGen()">
+            </div>
+            <div class="field-group">
+              <label id="lblProgPrefix">Texto antes del placeholder</label>
+              <input type="text" id="progPrefix" value="(llevás " oninput="updateProgressPreview();debouncedGen()">
+            </div>
+          </div>
+          <div class="field-row fr-2">
+            <div class="field-group">
+              <label id="lblProgSuffix">Texto después del placeholder</label>
+              <input type="text" id="progSuffix" value=")" oninput="updateProgressPreview();debouncedGen()">
+            </div>
+            <div class="field-group">
+              <label id="lblProgGoalColor">Color del valor requerido</label>
+              <input type="text" id="progGoalColor" value="" placeholder="usar color del requisito" oninput="updateProgressPreview();debouncedGen()">
+            </div>
+          </div>
+          <div class="field-group">
+            <label id="lblProgPreview">Vista previa</label>
+            <div class="progress-preview-box" id="progressPreviewFull">&7• &fDinero: &a1000 &7(llevás %vault_eco_balance%)</div>
+          </div>
+        </div>
+      </div>
+      <div class="field-group">
+        <label id="lblNameLocked">Nombre Bloqueado</label>
+        <input type="text" id="nameLocked" value="&cNivel {lv} &7[BLOQUEADO]" oninput="debouncedGen()">
+      </div>
+      <div class="field-group">
+        <label id="lblNameClaim">Nombre Reclamar</label>
+        <input type="text" id="nameClaim" value="&eNivel {lv} &f[RECLAMAR]" oninput="debouncedGen()">
+      </div>
+      <div class="field-group">
+        <label id="lblNameDone">Nombre Completado</label>
+        <input type="text" id="nameDone" value="&aNivel {lv} &b[COMPLETADO]" oninput="debouncedGen()">
+      </div>
+      <div class="sdiv" id="sdivStates">Estados de botones</div>
+      <div class="field-row fr-3">
+        <div class="field-group"><label id="lblNameLocked">Nombre Bloqueado</label><input type="text" id="nameLocked" value="&cNivel {lv} &7[BLOQUEADO]" oninput="debouncedGen()"></div>
+        <div class="field-group"><label id="lblNameClaim">Nombre Reclamar</label><input type="text" id="nameClaim" value="&eNivel {lv} &f[RECLAMAR]" oninput="debouncedGen()"></div>
+        <div class="field-group"><label id="lblNameDone">Nombre Completado</label><input type="text" id="nameDone" value="&aNivel {lv} &b[COMPLETADO]" oninput="debouncedGen()"></div>
+      </div>
+      <div class="states-grid">
+
+        <!-- BLOQUEADO -->
+        <div class="state-pill sp-locked">
+          <div class="state-pill-label" id="lblLocked">🔒 Bloqueado</div>
+          <div class="field-group"><label id="lbl_matLocked">Material</label><input type="text" id="matLocked" value="RED_STAINED_GLASS_PANE" oninput="debouncedGen()"></div>
+          <div class="field-group"><label id="lbl_btnLocked">Texto Botón</label><input type="text" id="btnLocked" value="#AEFAB4➥ &cNo cumples los requisitos" oninput="debouncedGen()"></div>
+          <div class="state-cmds-label">Comandos de estado:</div>
+          <div class="state-cmd-row">
+            <span class="state-cmd-prefix">msg=</span>
+            <input type="text" id="msgLocked" value="&c¡No cumples con los requisitos!" placeholder="&c¡No cumples con los requisitos!" oninput="debouncedGen()">
+          </div>
+          <div class="state-cmd-row">
+            <span class="state-cmd-prefix">sound=</span>
+            <input type="text" id="sndLocked" data-lbl="lblSndLocked" value="ENTITY_VILLAGER_NO" placeholder="ENTITY_VILLAGER_NO" oninput="debouncedGen()">
+            <input type="number" id="sndLockedVol" value="10" class="state-cmd-short" oninput="debouncedGen()">
+            <input type="number" id="sndLockedPitch" value="1" class="state-cmd-short" oninput="debouncedGen()">
+          </div>
+          <div class="state-extra-cmds" id="extraCmdsLocked"></div>
+          <button class="state-add-cmd-btn" onclick="addExtraCmd('locked')" id="addCmdLocked">+ Añadir comando</button>
+        </div>
+
+        <!-- RECLAMAR -->
+        <div class="state-pill sp-claim">
+          <div class="state-pill-label" id="lblClaim">🟠 Reclamar</div>
+          <div class="field-group"><label id="lbl_matClaim">Material</label><input type="text" id="matClaim" value="ORANGE_STAINED_GLASS_PANE" oninput="debouncedGen()"></div>
+          <div class="field-group"><label id="lbl_btnClaim">Texto Botón</label><input type="text" id="btnClaim" value="#AEFAB4➥ &eClic para reclamar!" oninput="debouncedGen()"></div>
+          <div class="state-cmds-label">Comandos de estado:</div>
+          <div class="state-cmd-row">
+            <span class="state-cmd-prefix">msg=</span>
+            <input type="text" id="msgClaim" value="&a¡Has reclamado el nivel {lv}!" placeholder="&a¡Has reclamado el nivel {lv}!" oninput="debouncedGen()">
+          </div>
+          <div class="state-cmd-row">
+            <span class="state-cmd-prefix">sound=</span>
+            <input type="text" id="sndClaim" data-lbl="lblSndClaim" value="ENTITY_PLAYER_LEVELUP" placeholder="ENTITY_PLAYER_LEVELUP" oninput="debouncedGen()">
+            <input type="number" id="sndClaimVol" value="10" class="state-cmd-short" oninput="debouncedGen()">
+            <input type="number" id="sndClaimPitch" value="1" class="state-cmd-short" oninput="debouncedGen()">
+          </div>
+          <div class="state-extra-cmds" id="extraCmdsClaim"></div>
+          <button class="state-add-cmd-btn" onclick="addExtraCmd('claim')" id="addCmdClaim">+ Añadir comando</button>
+        </div>
+
+        <!-- COMPLETADO -->
+        <div class="state-pill sp-done">
+          <div class="state-pill-label" id="lblDone">✅ Completado</div>
+          <div class="field-group"><label id="lbl_matDone">Material</label><input type="text" id="matDone" value="LIME_STAINED_GLASS_PANE" oninput="debouncedGen()"></div>
+          <div class="field-group"><label id="lbl_btnDone">Texto Botón</label><input type="text" id="btnDone" value="#AEFAB4➥ &aNivel completado" oninput="debouncedGen()"></div>
+          <div class="state-cmds-label">Comandos de estado:</div>
+          <div class="state-cmd-row">
+            <span class="state-cmd-prefix">msg=</span>
+            <input type="text" id="msgDone" value="&7Ya reclamaste este nivel" oninput="debouncedGen()">
+          </div>
+          <div class="state-cmd-row">
+            <span class="state-cmd-prefix">sound=</span>
+            <input type="text" id="sndDone" data-lbl="lblSndDone" value="BLOCK_NOTE_BLOCK_PLING" oninput="debouncedGen()">
+            <input type="number" id="sndDoneVol" value="10" class="state-cmd-short" oninput="debouncedGen()">
+            <input type="number" id="sndDonePitch" value="1" class="state-cmd-short" oninput="debouncedGen()">
+          </div>
+          <div class="state-extra-cmds" id="extraCmdsDone"></div>
+          <button class="state-add-cmd-btn" onclick="addExtraCmd('done')" id="addCmdDone">+ Añadir comando</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: REQUISITOS -->
+  <div class="view" id="view-reqs">
+    <div class="panel-header">
+      <div class="panel-title" id="hReqs">📊 Requisitos</div>
+      <div class="panel-badge" id="bReqs">REQS</div>
+    </div>
+    <div class="panel-content">
+      <div class="help-box">
+        <div class="help-box-title">💡 <span id="hbTitleReqs">Cómo usar el Sistema de Requisitos</span></div>
+        <ul>
+          <li><b>Variable PlaceholderAPI:</b> placeholder evaluado en tiempo real, ej. <code>%vault_eco_balance%</code> para dinero.</li>
+          <li><b>Base + Aumento/Lv:</b> el valor requerido escala por nivel. Ej: Base <code>1000</code> + Aumento <code>500</code> → nivel 3 pide <code>2000</code>.</li>
+          <li><b>Niveles:</b> separa por coma para restringir el requisito a niveles específicos, ej. <code>1,3,5</code>. Vacío = todos los niveles.</li>
+          <li><b>Color:</b> código de color para el valor en el lore, ej. <code>&a</code> verde, <code>&c</code> rojo o <code>#HEX</code>.</li>
+          <li><b>Añadir Requisito:</b> puedes tener múltiples requisitos por nivel con diferentes variables y rangos de niveles.</li>
+        </ul>
+      </div>
+      <div id="reqsContainer"></div>
+      <button class="add-btn" id="addReqBtn" onclick="addReq()">
+        <span class="add-icon">+</span> Añadir Requisito
+      </button>
+    </div>
+  </div>
+
+  <!-- VIEW: RECOMPENSAS -->
+  <div class="view" id="view-rewards">
+    <div class="panel-header">
+      <div class="panel-title">🎁 Recompensas</div>
+      <div class="panel-badge" id="rew-badge">2 ACTIVAS</div>
+    </div>
+    <div class="panel-content">
+      <div class="help-box">
+        <div class="help-box-title">💡 <span id="hbTitleRewards">Cómo usar el Sistema de Recompensas</span></div>
+        <ul>
+          <li><b>Comando:</b> ejecutado en consola al reclamar. Usa <code>{val}</code> para la cantidad calculada y <code>{lv}</code> para el nivel.</li>
+          <li><b>Multiplicar x Lv:</b> <code>cantidad × nivel</code>, escala progresivamente. Ej: 100 × nivel 5 = <code>500</code>.</li>
+          <li><b>Fijo:</b> entrega siempre la misma cantidad sin importar el nivel.</li>
+          <li><b>Niveles:</b> separa por coma para aplicar solo en niveles concretos, ej. <code>2,4,6</code>. Vacío = todos.</li>
+          <li><b>Toggle:</b> desactiva la recompensa sin eliminarla, no aparece en el YAML.</li>
+          <li><b>Añadir Recompensa:</b> puedes apilar múltiples comandos por nivel, ej. dinero + items + permisos.</li>
+        </ul>
+      </div>
+      <div id="rewardsContainer"></div>
+      <button class="add-btn" id="addRewBtn" onclick="addReward()">
+        <span class="add-icon">+</span> Añadir Recompensa
+      </button>
+    </div>
+  </div>
+
+  <!-- VIEW: LUCKPERMS -->
+  <div class="view" id="view-luckperms">
+    <div class="panel-header">
+      <div class="panel-title" id="hLuckperms">🔑 LuckPerms</div>
+      <div class="panel-badge" id="bLuckperms">LP</div>
+    </div>
+    <div class="panel-content">
+      <div class="help-box">
+        <div class="help-box-title">💡 <span id="hbTitleLuckperms">Cómo usar LuckPerms</span></div>
+        <ul>
+          <li><b>Permiso de Nivel:</b> se otorga automáticamente al reclamar, formado como <code>permiso.{lv}</code>, ej. <code>recompensa.reclamada.3</code>.</li>
+          <li><b>Comando LP:</b> ejecutado en consola para asignar el permiso. Usa <code>{perm}</code> y <code>{lv}</code> como variables.</li>
+          <li>El panel verifica con <code>HASPERM</code> si el jugador tiene el permiso para mostrar el estado <b>Completado</b>.</li>
+          <li>Sin LuckPerms configurado el sistema no podrá marcar niveles como completados.</li>
+        </ul>
+      </div>
+      <div class="field-group">
+        <label id="lblPermBase">Permiso de Nivel (.{lv})</label>
+        <input type="text" id="permBase" value="recompensa.reclamada" oninput="debouncedGen()">
+      </div>
+      <div class="field-group">
+        <label id="lblLpCmd">Comando LP</label>
+        <input type="text" id="lpCmd" value="lp user %cp-player-name% permission set {perm}.{lv} true" oninput="debouncedGen()">
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: LAYOUT -->
+  <div class="view" id="view-layout">
+    <div class="panel-header">
+      <div class="panel-title" id="hLayout">🗺️ Layout</div>
+      <div class="panel-badge" id="bLayout">INV</div>
+    </div>
+    <div class="panel-content">
+      <div class="help-box">
+        <div class="help-box-title">💡 <span id="hbTitleLayout">Cómo usar el Layout</span></div>
+        <ul>
+          <li><b>Patrón:</b> distribución de los slots de recompensa dentro del inventario.</li>
+          <li><b>Filas (rows):</b> tamaño vertical del menú, de 1 a 6. Si los slots no caben aparece una advertencia.</li>
+          <li><b>Nivel Inicial:</b> primer nivel generado, útil para dividir en varios archivos YAML.</li>
+          <li><b>Cant. Slots:</b> cuántos niveles generar. Cada slot verde en la previsualización = un nivel.</li>
+          <li><b>Items Extra:</b> slots decorativos o funcionales adicionales con material, nombre, lore y comandos propios.</li>
+          <li>Slots vacíos se rellenan con el <b>Fondo</b> configurado en Ajustes del Panel.</li>
+        </ul>
+      </div>
+      <div class="field-row fr-3">
+        <div class="field-group">
+          <label id="lblPattern">Patrón</label>
+          <select id="patternSelect" onchange="gen()">
+            <option value="centrales">Slots Centrales</option>
+            <option value="custom_path">Ruta Especial (21)</option>
+            <option value="snake">Serpiente</option>
+            <option value="zigzag">Zig-Zag</option>
+            <option value="borders">Bordes</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label id="lblStartLv">Nivel Inicial</label>
+          <input type="number" id="startLv" value="1" oninput="debouncedGen()">
+        </div>
+        <div class="field-group">
+          <label id="lblBatch">Cant. Slots</label>
+          <input type="number" id="batch" value="21" oninput="debouncedGen()">
+        </div>
+      </div>
+      <div class="field-group">
+        <label id="lblRows">Filas del menú (rows)</label>
+        <div class="rows-selector" id="rowsSelector">
+          <button class="row-btn" data-rows="1" onclick="setRows(1)">1</button>
+          <button class="row-btn" data-rows="2" onclick="setRows(2)">2</button>
+          <button class="row-btn" data-rows="3" onclick="setRows(3)">3</button>
+          <button class="row-btn" data-rows="4" onclick="setRows(4)">4</button>
+          <button class="row-btn active" data-rows="5" onclick="setRows(5)">5</button>
+          <button class="row-btn" data-rows="6" onclick="setRows(6)">6</button>
+        </div>
+        <div class="rows-warning" id="rowsWarning" style="display:none"></div>
+      </div>
+      <div class="inv-wrap">
+        <div class="inv-grid" id="invPreview"></div>
+        <div style="display:flex; gap:12px; font-size:10px; color:var(--muted);">
+          <span id="invLegendActive">🟩 = slot activo</span>
+          <span id="inv-info">21 slots</span>
+        </div>
+      </div>
+      <div class="sdiv" id="sdivExtraItems" style="margin-top:4px;">Items Extra</div>
+      <div id="extraItemsContainer"></div>
+      <button class="add-btn" id="addItemBtn" onclick="addExtraItem()">
+        <span class="add-icon">+</span> Añadir Item Extra
+      </button>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-label" id="statLblSlots">Slots</div><div class="stat-val" id="stat-slots">21</div></div>
+      <div class="stat-item"><div class="stat-label" id="statLblDesde">Desde</div><div class="stat-val" id="stat-start">1</div></div>
+      <div class="stat-item"><div class="stat-label" id="statLblHasta">Hasta</div><div class="stat-val" id="stat-end">21</div></div>
+    </div>
+  </div>
+
+</div><!-- /panel-area -->
+</div><!-- /main-top -->
+
+<!-- CODE VIEW -->
+<div class="code-view">
+  <!-- YAML PANEL collapsible at bottom -->
+  <div class="preview-panel" id="previewPanel">
+    <div class="preview-bar" onclick="togglePreview()">
+      <div class="preview-bar-left">
+        <span class="preview-pulse"></span>
+        <div class="code-filename">
+          <span style="display:flex; gap:5px;">
+            <div class="code-dot" style="background:#ff5f57"></div>
+            <div class="code-dot" style="background:#febc2e"></div>
+            <div class="code-dot" style="background:#28c840"></div>
+          </span>
+          <span>panels.yml</span>
+          <span style="color:var(--muted)">·</span>
+          <span id="stat-lines">0 líneas</span>
+        </div>
+      </div>
+      <div class="preview-bar-right">
+        <span class="bar-credit">© Desarrollado por <span class="bar-credit-name">MineHostil</span></span>
+        <button class="copy-btn" id="copyBtn" onclick="event.stopPropagation(); copyText()">COPIAR YAML</button>
+        <button class="preview-toggle-btn" id="previewToggleBtn">
+          <span id="previewChevron">▼</span>
+          <span id="previewToggleLabel">Mostrar</span>
+        </button>
+      </div>
+    </div>
+    <div class="preview-body" id="previewBody">
+      <pre id="output"></pre>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // Debounce para evitar lag en inputs
+  let _genTimer = null;
+  function debouncedGen() {
+    clearTimeout(_genTimer);
+    _genTimer = setTimeout(gen, 180);
+  }
+
+  function getPatterns(rows) {
+    const cols = 9;
+    const total = rows * cols;
+
+    // centrales: inner slots skipping first/last col and first/last row
+    const centrales = [];
+    for(let r = 1; r < rows-1; r++)
+      for(let c = 1; c < cols-1; c++)
+        centrales.push(r * cols + c);
+
+    // snake: row by row alternating direction, inner rows only
+    const snake = [];
+    for(let r = 1; r < rows-1; r++) {
+      const rowSlots = [];
+      for(let c = 1; c < cols-1; c++) rowSlots.push(r * cols + c);
+      snake.push(...(r % 2 === 1 ? rowSlots : rowSlots.reverse()));
+    }
+
+    // zigzag: diagonal-like skipping pattern across inner rows
+    const zigzag = [];
+    const innerCols = [1,3,5,7];
+    for(let r = 1; r < rows-1; r++)
+      for(const c of (r % 2 === 1 ? innerCols : innerCols.slice().reverse()))
+        zigzag.push(r * cols + c);
+
+    // borders: top row + right col + bottom row (rev) + left col (rev), skip corners
+    const borders = [];
+    // top row (no corners)
+    for(let c = 1; c < cols-1; c++) borders.push(c);
+    // right col (no corners)
+    for(let r = 1; r < rows-1; r++) borders.push(r * cols + cols - 1);
+    // bottom row reversed (no corners)
+    for(let c = cols-2; c >= 1; c--) borders.push((rows-1) * cols + c);
+    // left col reversed (no corners)
+    for(let r = rows-2; r >= 1; r--) borders.push(r * cols);
+
+    // custom_path: series of inverted-U shapes matching original 21-slot pattern
+    // Verified to exactly match [9,10,19,28,37,38,39,30,21,12,13,14,23,32,41,42,43,34,25,16,17] for rows=6
+    const custom_path = [];
+    const cpSeen = new Set();
+    const cpAdd2 = (slot) => { if(!cpSeen.has(slot) && slot>=0 && slot<rows*cols){ cpSeen.add(slot); custom_path.push(slot); }};
+    const cpTop = 1;
+    const cpBot = rows - 2;
+    let cpCol = 0;
+    cpAdd2(cpTop * cols + cpCol);
+    cpCol = 1;
+    while(cpCol < cols - 1) {
+      for(let r = cpTop; r <= cpBot; r++) cpAdd2(r * cols + cpCol);
+      if(cpCol + 1 < cols - 1) {
+        const cpNext = cpCol + 2;
+        for(let c = cpCol+1; c <= cpNext; c++) cpAdd2(cpBot * cols + c);
+        for(let r = cpBot-1; r >= cpTop; r--) cpAdd2(r * cols + cpNext);
+        if(cpNext + 1 < cols - 1) {
+          cpAdd2(cpTop * cols + cpNext + 1);
+          cpCol = cpNext + 2;
+        } else if(cpNext + 1 === cols - 1) {
+          cpAdd2(cpTop * cols + cpNext + 1);
+          cpCol = cols;
+        } else { cpCol = cols; }
+      } else { cpCol = cols; }
+    }
+
+    return { centrales, custom_path, snake, zigzag, borders };
+  }
+
+  let persistentData = { rewards: {}, reqs: {} };
+
+  function switchView(id, btn) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  function saveAllData() { /* data lives in reqList / rewList directly */ }
+
+  let reqList = [
+    { t:'Dinero', p:'%vault_eco_balance%', b:1000, a:500, col:'&a', l:'' }
+  ];
+
+  function renderReqs() {
+    const area = document.getElementById('reqsContainer');
+    area.innerHTML = '';
+    reqList.forEach((s, idx) => {
+      const r = idx + 1;
+      const div = document.createElement('div');
+      div.className = 'req-row';
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">${T.lReqNum||'Requisito'} #${r}</div>
+          ${reqList.length > 1 ? `<button class="row-remove-btn" onclick="removeReq(${idx})" title="✕">✕</button>` : ''}
+        </div>
+        <div class="req-row-top">
+          <div class="field-group"><label>${T.lReqTitle2||'Título'}</label><input type="text" id="req${r}T" value="${s.t}" oninput="syncReq(${idx},'t',this.value)"></div>
+          <div class="field-group"><label>${T.lReqVar2||'Variable PlaceholderAPI'}</label><input type="text" id="req${r}P" value="${s.p}" oninput="syncReq(${idx},'p',this.value)"></div>
+        </div>
+        <div class="req-row-bot">
+          <div class="field-group"><label>${T.lReqBase2||'Base'}</label><input type="number" id="req${r}B" value="${s.b}" oninput="syncReq(${idx},'b',this.value)"></div>
+          <div class="field-group"><label>${T.lReqAumento2||'Aumento/Lv'}</label><input type="number" id="req${r}A" value="${s.a}" oninput="syncReq(${idx},'a',this.value)"></div>
+          <div class="field-group"><label>${T.lReqColor2||'Color'}</label><input type="text" id="req${r}Color" value="${s.col}" oninput="syncReq(${idx},'col',this.value)"></div>
+          <div class="field-group"><label>${T.lReqLevels2||'Niveles'}</label><input type="text" id="req${r}L" value="${s.l}" placeholder="${T.lReqLevelsPlaceholder2||'Todos'}" oninput="syncReq(${idx},'l',this.value)"></div>
+        </div>`;
+      area.appendChild(div);
+    });
+  }
+
+  function syncReq(idx, key, val) { reqList[idx][key] = val; gen(); }
+  function addReq() { reqList.push({ t:'', p:'', b:0, a:0, col:'&a', l:'' }); renderReqs(); gen(); }
+  function removeReq(idx) { reqList.splice(idx, 1); renderReqs(); gen(); }
+
+  function initReqs() { renderReqs(); }
+
+  let rewList = [
+    { lvs:'', l:'Dinero', c:'eco give %cp-player-name% {val}', b:100, m:'mult', col:'#5DFA30', on:true },
+    { lvs:'', l:'', c:'', b:0, m:'mult', col:'#5DFA30', on:false }
+  ];
+
+  function renderRewards() {
+    const container = document.getElementById('rewardsContainer');
+    container.innerHTML = '';
+    let activeCount = 0;
+    rewList.forEach((s, idx) => {
+      const i = idx + 1;
+      if(s.on) activeCount++;
+      const div = document.createElement('div');
+      div.className = `reward-row ${s.on ? 'enabled' : 'disabled'}`;
+      div.innerHTML = `
+        <div class="rew-head">
+          <div class="rew-num">${T.lRewNum||'Recompensa'} #${i}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${rewList.length > 1 ? `<button class="row-remove-btn" onclick="removeReward(${idx})" title="Eliminar">✕</button>` : ''}
+            <label class="toggle" title="${s.on?'Desactivar':'Activar'}">
+              <input type="checkbox" ${s.on?'checked':''} onchange="toggleRew(${idx})">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+        </div>
+        <div class="rew-body">
+          <div class="field-group"><label>${T.lRewName2||'Nombre'}</label><input type="text" id="r${i}L" value="${s.l}" oninput="syncRew(${idx},'l',this.value)"></div>
+          <div class="field-group"><label>${T.lRewLevels2||'Niveles'}</label><input type="text" id="r${i}Lvs" value="${s.lvs}" placeholder="${T.lReqLevelsPlaceholder2||'Todos'}" oninput="syncRew(${idx},'lvs',this.value)"></div>
+        </div>
+        <div class="field-group"><label>${T.lRewCmd2||'Comando'}</label><input type="text" id="r${i}C" value="${s.c}" oninput="syncRew(${idx},'c',this.value)"></div>
+        <div class="rew-foot">
+          <div class="field-group"><label>${T.lRewAmount2||'Cantidad'}</label><input type="number" id="r${i}B" value="${s.b}" oninput="syncRew(${idx},'b',this.value)"></div>
+          <div class="field-group"><label>${T.lRewMode2||'Modo'}</label>
+            <select id="r${i}M" onchange="syncRew(${idx},'m',this.value)">
+              <option value="mult" ${s.m==='mult'?'selected':''}>${T.lRewModeMult2||'Multiplicar x Lv'}</option>
+              <option value="sum" ${s.m==='sum'?'selected':''}>${T.lRewModeFixed2||'Fijo'}</option>
+            </select>
+          </div>
+          <div class="field-group"><label>${T.lReqColor2||'Color'}</label><input type="text" id="r${i}Color" value="${s.col}" oninput="syncRew(${idx},'col',this.value)"></div>
+        </div>`;
+      container.appendChild(div);
+    });
+    document.getElementById('rew-badge').textContent = activeCount + ' ACTIVAS';
+  }
+
+  function syncRew(idx, key, val) { rewList[idx][key] = val; gen(); }
+  function toggleRew(idx) { rewList[idx].on = !rewList[idx].on; renderRewards(); gen(); }
+  function addReward() { rewList.push({ lvs:'', l:'', c:'', b:0, m:'mult', col:'#5DFA30', on:true }); renderRewards(); gen(); }
+  function removeReward(idx) { rewList.splice(idx,1); renderRewards(); gen(); }
+
+  function initRewards() { renderRewards(); }
+
+  function checkLv(input, lv) {
+    if(!input || input.trim()==="") return true;
+    return input.split(',').map(n=>parseInt(n.trim())).includes(lv);
+  }
+
+  function gen() {
+    const patternKey = document.getElementById('patternSelect').value;
+    const patterns = getPatterns(menuRows);
+    const slots = patterns[patternKey] || [];
+    const startLv = parseInt(document.getElementById('startLv').value) || 1;
+    let batchInput = Math.min(parseInt(document.getElementById('batch').value)||1, slots.length);
+    // rows warning
+    const rWarn = document.getElementById('rowsWarning');
+    if(rWarn) {
+      if(batchInput > menuRows * 9) {
+        rWarn.style.display = 'block';
+        rWarn.textContent = `⚠ ${batchInput} slots no caben en ${menuRows} filas (máx ${menuRows*9}). Reduce Cant. Slots o aumenta las filas.`;
+      } else { rWarn.style.display = 'none'; }
+    }
+    const slotsUsed = slots.slice(0, batchInput);
+
+    // Update inv grid - adapt to menuRows
+    const grid = document.getElementById('invPreview');
+    grid.innerHTML = '';
+    const totalSlots = menuRows * 9;
+    for(let i=0; i<totalSlots; i++) {
+      const d = document.createElement('div');
+      d.className = 'inv-slot';
+      const idx = slotsUsed.indexOf(i);
+      if(idx !== -1) { d.classList.add('active'); d.innerText = (startLv + idx); }
+      // Mark extra item slots
+      const isExtra = extraItems.some(it => parseInt(it.slot) === i);
+      if(isExtra && idx === -1) { d.classList.add('extra'); d.innerText = '★'; }
+      grid.appendChild(d);
+    }
+
+    // Stats
+    const panelIDVal = document.getElementById('panelID').value;
+    const permVal = document.getElementById('openPerm').value;
+    if(document.getElementById('stat-id')) document.getElementById('stat-id').textContent = panelIDVal || '—';
+    if(document.getElementById('stat-perm')) document.getElementById('stat-perm').textContent = permVal || '—';
+    if(document.getElementById('stat-slots')) document.getElementById('stat-slots').textContent = batchInput;
+    if(document.getElementById('stat-start')) document.getElementById('stat-start').textContent = startLv;
+    if(document.getElementById('stat-end')) document.getElementById('stat-end').textContent = startLv + batchInput - 1;
+    if(document.getElementById('inv-info')) document.getElementById('inv-info').textContent = batchInput + ' slots activos';
+
+    // panelType
+    const ptRaw = (document.getElementById('panelTypeInput').value||'').trim();
+    const ptVals = ptRaw ? [ptRaw] : [];
+    // commands-on-open
+    const openOnLines = (document.getElementById('openOnCmds').value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+
+    const loreLines = document.getElementById('loreMulti').value.split('\n');
+    const tRew = document.getElementById('titleRew').value;
+    const tReq = document.getElementById('titleReq').value;
+    const fullLocked = document.getElementById('btnLocked').value;
+    const fullClaim = document.getElementById('btnClaim').value;
+    const fullDone = document.getElementById('btnDone').value;
+    const mLocked = document.getElementById('matLocked').value;
+    const mClaim = document.getElementById('matClaim').value;
+    const mDone = document.getElementById('matDone').value;
+
+    let res = `panels:\n  ${panelIDVal}:\n    perm: ${permVal}\n    rows: ${menuRows}\n    title: '${document.getElementById('panelTitle').value}'\n    commands:\n`;
+    document.getElementById('openCmds').value.split(',').forEach(c => { if(c.trim()) res += `    - ${c.trim()}\n`; });
+    if(openOnLines.length > 0) {
+      res += `    commands-on-open:\n`;
+      openOnLines.forEach(l => { res += `    - ${l}\n`; });
+    }
+    if(ptVals.length > 0) {
+      res += `    panelType:\n`;
+      ptVals.forEach(v => { res += `    - ${v}\n`; });
+    }
+    res += `    empty: ${document.getElementById('emptyMat').value}\n    item:\n`;
+
+    for(let i=0; i < batchInput; i++) {
+      let lv = startLv + i, sl = slotsUsed[i], baseP = document.getElementById('permBase').value;
+      let reqs = [];
+      reqList.forEach(rq => {
+        if(rq.p && checkLv(rq.l, lv)) {
+          let goal = (parseInt(rq.b)||0) + (parseInt(rq.a)||0) * (lv - 1);
+          reqs.push({ t:rq.t, p:rq.p, goal:goal, col:rq.col });
+        }
+      });
+      let currentRewards = [];
+      rewList.forEach(rw => {
+        if(rw.on && checkLv(rw.lvs, lv)) {
+          let val = (rw.m==='mult') ? (parseInt(rw.b)*lv) : parseInt(rw.b);
+          currentRewards.push({ label:rw.l, val:val, cmd:rw.c, col:rw.col });
+        }
+      });
+
+      const showProg = document.getElementById('showProgress').checked;
+      const progColor = document.getElementById('progColor').value || '&7';
+      const progPrefix = document.getElementById('progPrefix').value || '(llevás ';
+      const progSuffix = document.getElementById('progSuffix').value || ')';
+      const progGoalColor = document.getElementById('progGoalColor').value;
+      const buildLore = (sp, status) => {
+        let l = "";
+        loreLines.forEach(line => { l += `\n${" ".repeat(sp)}- '${line.replace(/'/g, "''")}'`; });
+        // Requisitos primero
+        if(reqs.length > 0) {
+          l += `\n${" ".repeat(sp)}- ' '\n${" ".repeat(sp)}- '${tReq}'`;
+          reqs.forEach(req => {
+            if(status==='done') {
+              l += `\n${" ".repeat(sp)}- '  &7• &f${req.t}: ${req.col}${req.goal}'`;
+            } else if(showProg) {
+              const gc = progGoalColor || req.col;
+              l += `\n${" ".repeat(sp)}- '  &7• &f${req.t}: ${gc}${req.goal} ${progColor}${progPrefix}${req.p}${progSuffix}'`;
+            } else {
+              l += `\n${" ".repeat(sp)}- '  &7• &f${req.t}: &c${req.p}&7/${req.col}${req.goal}'`;
+            }
+          });
+        }
+        // Recompensas abajo
+        if(currentRewards.length > 0) {
+          l += `\n${" ".repeat(sp)}- ' '\n${" ".repeat(sp)}- '${tRew}'`;
+          currentRewards.forEach(re => { l += `\n${" ".repeat(sp)}- '  &7• &f${re.label}: ${re.col}${re.val}'`; });
+        }
+        let footer = (status==='done') ? fullDone : (status==='unlocked' ? fullClaim : fullLocked);
+        l += `\n${" ".repeat(sp)}- ''\n${" ".repeat(sp)}- '${footer}'`;
+        return l;
+      };
+
+      let conds = "";
+      reqs.forEach((req, idx) => {
+        conds += `\n          value${idx}: '${req.p} ISGREATER'`;
+        conds += `\n          compare${idx}: '${req.goal}${idx===reqs.length-1?"":" AND"}'`;
+      });
+
+      const sndL = document.getElementById('sndLocked').value;
+      const sndLVol = document.getElementById('sndLockedVol').value;
+      const sndLPitch = document.getElementById('sndLockedPitch').value;
+      const msgL = document.getElementById('msgLocked').value;
+
+      const sndC = document.getElementById('sndClaim').value;
+      const sndCVol = document.getElementById('sndClaimVol').value;
+      const sndCPitch = document.getElementById('sndClaimPitch').value;
+      const msgC = document.getElementById('msgClaim').value.replace('{lv}',lv);
+
+      const sndD = document.getElementById('sndDone').value;
+      const sndDVol = document.getElementById('sndDoneVol').value;
+      const sndDPitch = document.getElementById('sndDonePitch').value;
+      const msgD = document.getElementById('msgDone').value;
+
+      let lockedCmds = '';
+      if(sndL) lockedCmds += `\n        - sound= ${sndL} ${sndLVol} ${sndLPitch}`;
+      if(msgL) lockedCmds += `\n        - msg= ${msgL}`;
+      extraCmds.locked.forEach(c => { if(c.trim()) lockedCmds += `\n        - ${c.trim()}`; });
+
+      let doneCmds = '';
+      if(sndD) doneCmds += `\n          - sound= ${sndD} ${sndDVol} ${sndDPitch}`;
+      if(msgD) doneCmds += `\n          - msg= ${msgD}`;
+      extraCmds.done.forEach(c => { if(c.trim()) doneCmds += `\n          - ${c.trim()}`; });
+
+      let claimCmds = '';
+      if(sndC) claimCmds += `\n          - sound= ${sndC} ${sndCVol} ${sndCPitch}`;
+      if(msgC) claimCmds += `\n          - msg= ${msgC}`;
+      claimCmds += `\n          - console= ${document.getElementById('lpCmd').value.replace('{perm}',baseP).replace('{lv}',lv)}`;
+      extraCmds.claim.forEach(c => { if(c.trim()) claimCmds += `\n          - ${c.trim()}`; });
+
+      const nLocked = document.getElementById('nameLocked').value.replace('{lv}',lv);
+      const nClaim = document.getElementById('nameClaim').value.replace('{lv}',lv);
+      const nDone = document.getElementById('nameDone').value.replace('{lv}',lv);
+      res += `      '${sl}':\n        material: ${mLocked}\n        name: '${nLocked}'\n        lore:${buildLore(8,'locked')}`;
+      if(lockedCmds) res += `\n        commands:${lockedCmds}`;
+      res += `\n        has0:\n          value0: '%cp-player-name% HASPERM'\n          compare0: ${baseP}.${lv} \n          material: ${mDone}\n          name: '${nDone}'\n          lore:${buildLore(10,'done')}`;
+      if(doneCmds) res += `\n          commands:${doneCmds}`;
+      res += `\n        has1:${conds}\n          material: ${mClaim}\n          name: '${nClaim}'\n          lore:${buildLore(10,'unlocked')}\n          commands:${claimCmds}\n`;
+      currentRewards.forEach(re => { res += `          - console= ${re.cmd.replace('{val}',re.val).replace('{lv}',lv)}\n`; });
+      res += `          - delay= 5 refresh\n`;
+    }
+    // Extra items
+    extraItems.forEach(it => {
+      if(it.slot === '' || it.slot === null) return;
+      res += `      '${it.slot}':\n        material: ${it.mat}\n        name: '${it.name}'\n`;
+      const loreLines = it.lore.split('\n').filter(l => l.trim());
+      if(loreLines.length > 0) {
+        res += `        lore:\n`;
+        loreLines.forEach(l => { res += `        - '${l}'\n`; });
+      }
+      const cmdLines = it.cmds.split('\n').filter(l => l.trim());
+      if(cmdLines.length > 0) {
+        res += `        commands:\n`;
+        cmdLines.forEach(l => { res += `        - ${l}\n`; });
+      }
+    });
+
+    document.getElementById('output').innerText = res;
+    const lines = res.split('\n').length;
+    document.getElementById('stat-lines').textContent = lines + ' líneas';
+  }
+
+  function togglePreview() {
+    const panel = document.getElementById("previewPanel");
+    const label = document.getElementById("previewToggleLabel");
+    const isOpen = panel.classList.toggle("open");
+    label.textContent = isOpen ? "Ocultar" : "Mostrar";
+  }
+
+  function copyText() {
+    const text = document.getElementById('output').innerText;
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = "✓ COPIADO"; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = "COPIAR YAML"; btn.classList.remove('copied'); }, 1800);
+  }
+
+
+
+  function updateCmdPreview(state) {
+    if(state === 'locked') {
+      const enS = document.getElementById('enSndLocked').checked;
+      const enM = document.getElementById('enMsgLocked').checked;
+      const enC = document.getElementById('enCmdLocked').checked;
+      const snd = document.getElementById('sndLocked').value;
+      const vol = document.getElementById('sndLockedVol').value;
+      const pit = document.getElementById('sndLockedPitch').value;
+      const msg = document.getElementById('msgLocked').value;
+      const cmd = document.getElementById('cmdLocked').value;
+      const pS = document.getElementById('prevSndLocked');
+      const pM = document.getElementById('prevMsgLocked');
+      const pC = document.getElementById('prevCmdLocked');
+      const fS = document.getElementById('fieldsSndLocked');
+      const fM = document.getElementById('fieldsMsgLocked');
+      const fC = document.getElementById('fieldsCmdLocked');
+      pS.textContent = snd ? `sound= ${snd} ${vol} ${pit}` : '— sin sonido —';
+      pS.className = 'cmd-preview' + (enS ? '' : ' off');
+      fS.className = 'cmd-fields' + (enS ? '' : ' off');
+      pM.textContent = msg ? `msg= ${msg}` : '— sin mensaje —';
+      pM.className = 'cmd-preview' + (enM ? '' : ' off');
+      fM.className = 'cmd-fields' + (enM ? '' : ' off');
+      pC.textContent = cmd ? cmd : '— cmd extra —';
+      pC.className = 'cmd-preview' + (enC ? '' : ' off');
+      fC.className = 'cmd-fields' + (enC ? '' : ' off');
+    } else if(state === 'done') {
+      const enS = document.getElementById('enSndDone').checked;
+      const enM = document.getElementById('enMsgDone').checked;
+      const snd = document.getElementById('sndDone').value;
+      const vol = document.getElementById('sndDoneVol').value;
+      const pit = document.getElementById('sndDonePitch').value;
+      const msg = document.getElementById('msgDone').value;
+      const pS = document.getElementById('prevSndDone');
+      const pM = document.getElementById('prevMsgDone');
+      const fS = document.getElementById('fieldsSndDone');
+      const fM = document.getElementById('fieldsMsgDone');
+      pS.textContent = snd ? `sound= ${snd} ${vol} ${pit}` : '— sin sonido —';
+      pS.className = 'cmd-preview' + (enS ? '' : ' off');
+      fS.className = 'cmd-fields' + (enS ? '' : ' off');
+      pM.textContent = msg ? `msg= ${msg}` : '— sin mensaje —';
+      pM.className = 'cmd-preview' + (enM ? '' : ' off');
+      fM.className = 'cmd-fields' + (enM ? '' : ' off');
+    }
+  }
+
+
+  const extraCmds = { locked: [], claim: [], done: [] };
+
+  function addExtraCmd(state) {
+    const key = state;
+    extraCmds[key].push('');
+    renderExtraCmds(state);
+    debouncedGen();
+  }
+
+  function removeExtraCmd(state, idx) {
+    extraCmds[state].splice(idx, 1);
+    renderExtraCmds(state);
+    gen();
+  }
+
+  function renderExtraCmds(state) {
+    const cap = state.charAt(0).toUpperCase() + state.slice(1);
+    const container = document.getElementById('extraCmds' + cap);
+    container.innerHTML = '';
+    extraCmds[state].forEach((val, idx) => {
+      const row = document.createElement('div');
+      row.className = 'state-extra-row';
+      row.innerHTML = `
+        <input type="text" value="${val}" placeholder="ej: console= eco give %cp-player-name% 100"
+          oninput="extraCmds['${state}'][${idx}]=this.value; debouncedGen()">
+        <button class="state-extra-remove" onclick="removeExtraCmd('${state}',${idx})" title="Eliminar">✕</button>`;
+      container.appendChild(row);
+    });
+  }
+
+
+  let menuRows = 5;
+  let extraItems = [];
+
+  function setRows(n) {
+    menuRows = n;
+    document.querySelectorAll('.row-btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.rows) === n);
+    });
+    // Check if slots fit
+    const batch = parseInt(document.getElementById('batch').value) || 1;
+    const maxSlots = n * 9;
+    const warn = document.getElementById('rowsWarning');
+    if(batch > maxSlots) {
+      warn.style.display = 'block';
+      warn.textContent = `⚠ ${batch} slots no caben en ${n} filas (máx ${maxSlots}). Reduce Cant. Slots o aumenta las filas.`;
+    } else {
+      warn.style.display = 'none';
+    }
+    gen();
+  }
+
+  function addExtraItem() {
+    extraItems.push({ slot: '', mat: 'GRAY_STAINED_GLASS_PANE', name: '&7Item Extra', lore: '', cmds: '' });
+    renderExtraItems();
+    debouncedGen();
+  }
+
+  function removeExtraItem(idx) {
+    extraItems.splice(idx, 1);
+    renderExtraItems();
+    gen();
+  }
+
+  function syncExtraItem(idx, key, val) {
+    extraItems[idx][key] = val;
+    debouncedGen();
+  }
+
+  function renderExtraItems() {
+    const c = document.getElementById('extraItemsContainer');
+    c.innerHTML = '';
+    extraItems.forEach((it, idx) => {
+      const d = document.createElement('div');
+      d.className = 'extra-item-card';
+      d.innerHTML = `
+        <div class="extra-item-head">
+          <span class="extra-item-num">${T.lItemNumLabel||'Item Extra'} #${idx+1}</span>
+          <button class="row-remove-btn" onclick="removeExtraItem(${idx})">✕</button>
+        </div>
+        <div class="field-row fr-2">
+          <div class="field-group"><label>${T.lItemSlot||'Slot (0-53)'}</label><input type="number" value="${it.slot}" min="0" max="53" oninput="syncExtraItem(${idx},'slot',this.value)"></div>
+          <div class="field-group"><label>${T.lItemMat||'Material'}</label><input type="text" value="${it.mat}" oninput="syncExtraItem(${idx},'mat',this.value)"></div>
+        </div>
+        <div class="field-group"><label>${T.lItemName2||'Nombre'}</label><input type="text" value="${it.name}" oninput="syncExtraItem(${idx},'name',this.value)"></div>
+        <div class="field-group"><label>${T.lItemLore2||'Lore (una línea por renglón)'}</label><textarea oninput="syncExtraItem(${idx},'lore',this.value)" style="height:60px">${it.lore}</textarea></div>
+        <div class="field-group"><label>${T.lItemCmds2||'Comandos (uno por línea)'}</label><textarea oninput="syncExtraItem(${idx},'cmds',this.value)" style="height:50px">${it.cmds}</textarea></div>`;
+      c.appendChild(d);
+    });
+  }
+
+
+  function toggleProgressFields() {
+    const on = document.getElementById('showProgress').checked;
+    document.getElementById('progressFields').style.display = on ? 'flex' : 'none';
+    if(on) updateProgressPreview();
+  }
+
+  function updateProgressPreview() {
+    const color = document.getElementById('progColor').value || '&7';
+    const prefix = document.getElementById('progPrefix').value || '(llevás ';
+    const suffix = document.getElementById('progSuffix').value || ')';
+    const goalColor = document.getElementById('progGoalColor').value || '&a';
+    const ex = `&7• &fDinero: ${goalColor}1000 ${color}${prefix}%vault_eco_balance%${suffix}`;
+    const el = document.getElementById('progressPreview');
+    const el2 = document.getElementById('progressPreviewFull');
+    if(el) el.textContent = ex;
+    if(el2) el2.textContent = ex;
+  }
+
+  function togglePtDropdown() {
+    const dd = document.getElementById('ptDropdown');
+    const btn = document.getElementById('ptToggleBtn');
+    const isOpen = dd.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+  }
+
+  function selectPtOption(val) {
+    document.getElementById('panelTypeInput').value = val;
+    // Mark selected
+    document.querySelectorAll('.pt-option').forEach(o => {
+      o.classList.toggle('selected', o.querySelector('.pt-opt-name').textContent === val);
+    });
+    // Close dropdown
+    document.getElementById('ptDropdown').classList.remove('open');
+    document.getElementById('ptToggleBtn').classList.remove('open');
+    gen();
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    if(!e.target.closest('.pt-wrap')) {
+      document.getElementById('ptDropdown')?.classList.remove('open');
+      document.getElementById('ptToggleBtn')?.classList.remove('open');
+    }
+  });
+
+
+  // ── TRANSLATIONS ──
+  const LANGS = ['es', 'en', 'pt'];
+  let langIdx = 0;
+  let T = {};
+
+  const TRANSLATIONS = {
+    es: {
+      confirmReset: '¿Resetear todo?',
+      flag: '🇪🇸', label: 'Idioma: Español',
+      // Sidebar tooltips
+      ttPanel: 'Panel', ttLore: 'Lore & Botones', ttReqs: 'Requisitos',
+      ttRewards: 'Recompensas', ttLuckperms: 'LuckPerms', ttLayout: 'Layout',
+      // Panel headers
+      hPanel: '⚙️ Ajustes del Panel', hLore: '📝 Lore & Botones',
+      hReqs: '📊 Requisitos', hRewards: '🎁 Recompensas',
+      hLuckperms: '🔑 LuckPerms', hLayout: '🗺️ Layout',
+      // Panel badges
+      bPanel:'PANEL', bLore:'LORE', bReqs:'REQS', bLuckperms:'LP', bLayout:'INV',
+      // Field labels — Panel
+      lPanelID: 'ID del Panel', lOpenPerm: 'Permiso Default',
+      lPanelTitle: 'Título del Menú', lOpenCmds: 'Comandos de Apertura',
+      lEmptyMat: 'Fondo (Material)', lOpenOnCmds: 'Comandos al Abrir (commands-on-open)',
+      lPanelType: 'Tipo de Panel (panelType)',
+      // Field labels — Lore
+      lLoreMulti: 'Lore Superior', lTitleRew: 'Texto Recompensas',
+      lTitleReq: 'Texto Requisitos', lShowProgress: 'Mostrar progreso en requisitos',
+      lProgColor: 'Color del texto extra', lProgPrefix: 'Texto antes del placeholder',
+      lProgSuffix: 'Texto después del placeholder', lProgGoalColor: 'Color del valor requerido',
+      lProgPreview: 'Vista previa',
+      lStatesTitle: 'Estados de botones',
+      lLocked: '🔒 Bloqueado', lClaim: '🟠 Reclamar', lDone: '✅ Completado',
+      lMaterial: 'Material', lBtnText: 'Texto Botón', lCmdsState: 'Comandos de estado:',
+      lMsgPrefix: 'msg=', lSoundPrefix: 'sound=', lAddCmd: '+ Añadir comando',
+      // Field labels — Reqs
+      lReqNum: 'Requisito', lReqTitle: 'Título', lReqVar: 'Variable PlaceholderAPI',
+      lReqBase: 'Base', lReqAumento: 'Aumento/Lv', lReqColor: 'Color',
+      lReqLevels: 'Niveles', lReqLevelsPlaceholder: 'Todos',
+      lAddReq: '+ Añadir Requisito',
+      // Field labels — Rewards
+      lRewNum: 'Recompensa', lRewName: 'Nombre', lRewLevels: 'Niveles',
+      lRewCmd: 'Comando', lRewAmount: 'Cantidad', lRewMode: 'Modo',
+      lRewColor: 'Color', lRewModeMult: 'Multiplicar x Lv', lRewModeFixed: 'Fijo',
+      lAddReward: '+ Añadir Recompensa',
+      // Field labels — LuckPerms
+      lPermBase: 'Permiso de Nivel (.{lv})', lLpCmd: 'Comando LP',
+      // Field labels — Layout
+      lPattern: 'Patrón', lStartLv: 'Nivel Inicial', lBatch: 'Cant. Slots',
+      lRows: 'Filas del menú (rows)', lExtraItems: 'Items Extra',
+      lAddItem: '+ Añadir Item Extra',
+      lItemNum: 'Item Extra', lSlot: 'Slot (0-53)',
+      lItemName: 'Nombre', lItemLore: 'Lore (una línea por renglón)',
+      lItemCmds: 'Comandos (uno por línea)',
+      // Patterns
+      pCentrales: 'Slots Centrales', pCustom: 'Ruta Especial (21)',
+      pSnake: 'Serpiente', pZigzag: 'Zig-Zag', pBorders: 'Bordes',
+      // Stats
+      sSlots: 'Slots', sDesde: 'Desde', sHasta: 'Hasta',
+      sID: 'ID', sPerm: 'Perm',
+      // Buttons
+      btnCopy: 'COPIAR YAML', btnCopied: '✓ COPIADO',
+      btnShow: 'Mostrar', btnHide: 'Ocultar',
+      // Default values
+      dMsgLocked: '&c¡No cumples con los requisitos!',
+      dMsgClaim: '&a¡Has reclamado el nivel {lv}!',
+      dMsgDone: '&7Ya reclamaste este nivel',
+      dBtnLocked: '#AEFAB4➥ &cNo cumples los requisitos',
+      dBtnClaim: '#AEFAB4➥ &eClic para reclamar!',
+      dBtnDone: '#AEFAB4➥ &aNivel completado',
+      dProgPrefix: '(llevás ',
+      // Help boxes
+      hbPanel: 'Cómo usar Ajustes del Panel',
+      hbLore: 'Cómo usar Lore & Botones',
+      hbReqs: 'Cómo usar el Sistema de Requisitos',
+      hbRewards: 'Cómo usar el Sistema de Recompensas',
+      hbLuckperms: 'Cómo usar LuckPerms',
+      hbLayout: 'Cómo usar el Layout',
+      // inv legend
+
+      // New labels
+      lPanelID: 'ID del Panel', lOpenPerm: 'Permiso Default',
+      lPanelTitle: 'Título del Menú', lEmptyMat: 'Fondo (Material)',
+      lLoreMulti2: 'Lore Superior', lTitleRew2: 'Texto Recompensas', lTitleReq2: 'Texto Requisitos',
+      lProgColor2: 'Color del texto extra', lProgPrefix2: 'Texto antes del placeholder',
+      lProgSuffix2: 'Texto después del placeholder', lProgGoalColor2: 'Color del valor requerido',
+      lMaterial2: 'Material', lBtnText2: 'Texto Botón',
+      lSnd: 'Sonido', lVol: 'Vol', lPitch: 'Tono', lMsg: 'Mensaje',
+      lNameLocked: 'Nombre Bloqueado', lNameClaim: 'Nombre Reclamar', lNameDone: 'Nombre Completado',
+      vNameLocked: '&cNivel {lv} &7[BLOQUEADO]',
+      vNameClaim: '&eNivel {lv} &f[RECLAMAR]',
+      vNameDone: '&aNivel {lv} &b[COMPLETADO]',
+      lPermBase2: 'Permiso de Nivel (.{lv})', lLpCmd2: 'Comando LP',
+      lPattern2: 'Patrón', lStartLv2: 'Nivel Inicial', lBatch2: 'Cant. Slots',
+      invActive: '🟩 = slot activo', invInfo: 'slots',
+      lLoreMulti2: 'Lore Superior',
+      lTitleRew2: 'Texto Recompensas',
+      lTitleReq2: 'Texto Requisitos',
+      lProgColor2: 'Color del texto extra',
+      lProgPrefix2: 'Texto antes del placeholder',
+      lProgSuffix2: 'Texto después del placeholder',
+      lProgGoalColor2: 'Color del valor requerido',
+      lOpenCmds2: 'Comandos de Apertura',
+      lOpenOnCmds2: 'Comandos al Abrir (commands-on-open)',
+      lPermBase2: 'Permiso de Nivel (.{lv})',
+      lLpCmd2: 'Comando LP',
+      lPattern2: 'Patrón',
+      lRows2: 'Filas del menú (rows)',
+      lStartLv2: 'Nivel Inicial',
+      lBatch2: 'Cant. Slots',
+      lMaterial: 'Material',
+      lBtnText2: 'Texto Botón',
+      lNameLocked: 'Nombre Bloqueado',
+      lNameClaim: 'Nombre Reclamar',
+      lNameDone: 'Nombre Completado',
+      vNameLocked: '&cNivel {lv} &7[BLOQUEADO]',
+      vNameClaim: '&eNivel {lv} &f[RECLAMAR]',
+      vNameDone: '&aNivel {lv} &b[COMPLETADO]',
+      lReqTitle2: 'Título',
+      lReqVar2: 'Variable PlaceholderAPI',
+      lReqBase2: 'Base',
+      lReqAumento2: 'Aumento/Lv',
+      lReqColor2: 'Color',
+      lReqLevels2: 'Niveles',
+      lReqLevelsPlaceholder2: 'Todos',
+      lRewName2: 'Nombre',
+      lRewLevels2: 'Niveles',
+      lRewCmd2: 'Comando',
+      lRewAmount2: 'Cantidad',
+      lRewMode2: 'Modo',
+      lRewModeMult2: 'Multiplicar x Lv',
+      lRewModeFixed2: 'Fijo',
+      lItemSlot: 'Slot (0-53)',
+      lItemMat: 'Material',
+      lItemName2: 'Nombre',
+      lItemLore2: 'Lore (una línea por renglón)',
+      lItemCmds2: 'Comandos (uno por línea)',
+      lItemNumLabel: 'Item Extra',
+
+      // Placeholders & input values
+      phOpenOnCmds: 'Un comando por línea',
+      phPanelType: 'Escribe o elige una opción...',
+      ptOptions: 'Opciones',
+      ptDesc_static: 'Panel estático, no se refresca',
+      ptDesc_nocommand: 'Sin comandos de apertura',
+      ptDesc_nocommandregister: 'No registra los comandos al servidor',
+      ptDesc_unmovable: 'Items no se pueden mover',
+      ptDesc_unclosable: 'El panel no se puede cerrar con ESC',
+      phProgGoalColor: 'usar color del requisito',
+      lblProgPreview: 'Vista previa',
+      addCmdLabel: '+ Añadir comando',
+      // Default input values (translatable)
+      vPanelID: 'nombre_panel',
+      vOpenCmds: 'recompensas, rewards',
+      vTitleRew: '#AEFAB4Recompensas:',
+      vTitleReq: '#5DFA30Requisitos:',
+      vProgPrefix: '(llevás ',
+      vProgSuffix: ')',
+      vLoreMulti: '&8ɪɴꜰᴏʀᴍᴀᴄɪᴏɴ\n \n&fDesbloquea esta recompensa\n&fcompletando las tareas.',
+      vBtnLocked: '#AEFAB4➥ &cNo cumples los requisitos',
+      vBtnClaim: '#AEFAB4➥ &eClic para reclamar!',
+      vBtnDone: '#AEFAB4➥ &aNivel completado',
+      vMsgLocked: '&c¡No cumples con los requisitos!',
+      vMsgClaim: '&a¡Has reclamado el nivel {lv}!',
+      vMsgDone: '&7Ya reclamaste este nivel',
+      vPermBase: 'recompensa.reclamada',
+      // Help box full content
+      hbPanelItems: [
+        ['ID del Panel', 'identificador único en el YAML, sin espacios.'],
+        ['Permiso Default', 'permiso requerido para abrir el panel. Usa <code>default</code> para todos.'],
+        ['Comandos de Apertura', 'separados por coma, ej. <code>rewards, r</code>.'],
+        ['commands-on-open', 'comandos de consola que se ejecutan cada vez que se abre el panel.'],
+        ['panelType', '<code>static</code> no refresca, <code>nocommand</code> desactiva comandos, <code>unclosable</code> bloquea ESC.'],
+        ['Fondo', 'material que rellena los slots vacíos del inventario.'],
+      ],
+      hbLoreItems: [
+        ['Lore Superior', 'texto visible en todos los slots. Soporta <code>&</code> y <code>#HEX</code> para colores.'],
+        ['Mostrar progreso', 'añade el progreso actual junto al valor requerido. Ej: <code>&fDinero: &a1000 &7(llevás %vault_eco_balance%)</code>.'],
+        ['Comandos de estado', 'cada estado tiene su propio <code>msg=</code> y <code>sound=</code>.'],
+        ['Añadir comando', 'agrega líneas extra al bloque <code>commands:</code> de cada estado.'],
+        ['Estados', 'Bloqueado muestra requisitos faltantes, Reclamar ejecuta las recompensas, Completado confirma el nivel.'],
+      ],
+      hbReqsItems: [
+        ['Variable PlaceholderAPI', 'placeholder evaluado, ej. <code>%vault_eco_balance%</code>.'],
+        ['Base + Aumento/Lv', 'Ej: Base <code>1000</code> + Aumento <code>500</code> → nivel 3 pide <code>2000</code>.'],
+        ['Niveles', 'separa por coma para restringir, ej. <code>1,3,5</code>. Vacío = todos.'],
+        ['Color', 'código de color para el lore, ej. <code>&a</code> o <code>#HEX</code>.'],
+        ['Añadir Requisito', 'puedes tener múltiples requisitos con diferentes variables y rangos.'],
+      ],
+      hbRewardsItems: [
+        ['Comando', 'ejecutado en consola al reclamar. Usa <code>{val}</code> y <code>{lv}</code>.'],
+        ['Multiplicar x Lv', '<code>cantidad × nivel</code>, escala progresivamente.'],
+        ['Fijo', 'entrega siempre la misma cantidad.'],
+        ['Niveles', 'separa por coma para niveles concretos. Vacío = todos.'],
+        ['Toggle', 'desactiva sin eliminar, excluye del YAML.'],
+        ['Añadir Recompensa', 'apila múltiples comandos por nivel, ej. dinero + items + permisos.'],
+      ],
+      hbLuckpermsItems: [
+        ['Permiso de Nivel', 'se otorga al reclamar, ej. <code>recompensa.reclamada.3</code>.'],
+        ['Comando LP', 'ejecutado en consola. Usa <code>{perm}</code> y <code>{lv}</code>.'],
+        ['HASPERM', 'el panel verifica el permiso para mostrar el estado Completado.'],
+        ['Sin LuckPerms', 'el sistema no podrá marcar niveles como completados.'],
+      ],
+      hbLayoutItems: [
+        ['Patrón', 'distribución de los slots de recompensa dentro del inventario.'],
+        ['Filas (rows)', 'tamaño vertical del menú, de 1 a 6. Si los slots no caben aparece advertencia.'],
+        ['Nivel Inicial', 'primer nivel generado, útil para dividir en varios archivos YAML.'],
+        ['Cant. Slots', 'cuántos niveles generar. Cada slot verde = un nivel.'],
+        ['Items Extra', 'slots decorativos con material, nombre, lore y comandos propios.'],
+        ['Fondo', 'slots vacíos se rellenan con el material configurado en Ajustes del Panel.'],
+      ],
+
+    },
+    en: {
+      confirmReset: 'Reset everything?',
+      flag: '🇺🇸', label: 'Language: English',
+      ttPanel: 'Panel', ttLore: 'Lore & Buttons', ttReqs: 'Requirements',
+      ttRewards: 'Rewards', ttLuckperms: 'LuckPerms', ttLayout: 'Layout',
+      hPanel: '⚙️ Panel Settings', hLore: '📝 Lore & Buttons',
+      hReqs: '📊 Requirements', hRewards: '🎁 Rewards',
+      hLuckperms: '🔑 LuckPerms', hLayout: '🗺️ Layout',
+      bPanel:'PANEL', bLore:'LORE', bReqs:'REQS', bLuckperms:'LP', bLayout:'INV',
+      lPanelID: 'Panel ID', lOpenPerm: 'Default Permission',
+      lPanelTitle: 'Menu Title', lOpenCmds: 'Open Commands',
+      lEmptyMat: 'Background (Material)', lOpenOnCmds: 'Commands on Open',
+      lPanelType: 'Panel Type (panelType)',
+      lLoreMulti: 'Top Lore', lTitleRew: 'Rewards Text',
+      lTitleReq: 'Requirements Text', lShowProgress: 'Show progress in requirements',
+      lProgColor: 'Extra text color', lProgPrefix: 'Text before placeholder',
+      lProgSuffix: 'Text after placeholder', lProgGoalColor: 'Required value color',
+      lProgPreview: 'Preview',
+      lStatesTitle: 'Button states',
+      lLocked: '🔒 Locked', lClaim: '🟠 Claim', lDone: '✅ Completed',
+      lMaterial: 'Material', lBtnText: 'Button Text', lCmdsState: 'State commands:',
+      lMsgPrefix: 'msg=', lSoundPrefix: 'sound=', lAddCmd: '+ Add command',
+      lReqNum: 'Requirement', lReqTitle: 'Title', lReqVar: 'PlaceholderAPI Variable',
+      lReqBase: 'Base', lReqAumento: 'Increase/Lv', lReqColor: 'Color',
+      lReqLevels: 'Levels', lReqLevelsPlaceholder: 'All',
+      lAddReq: '+ Add Requirement',
+      lRewNum: 'Reward', lRewName: 'Name', lRewLevels: 'Levels',
+      lRewCmd: 'Command', lRewAmount: 'Amount', lRewMode: 'Mode',
+      lRewColor: 'Color', lRewModeMult: 'Multiply x Lv', lRewModeFixed: 'Fixed',
+      lAddReward: '+ Add Reward',
+      lPermBase: 'Level Permission (.{lv})', lLpCmd: 'LP Command',
+      lPattern: 'Pattern', lStartLv: 'Start Level', lBatch: 'Slot Count',
+      lRows: 'Menu rows', lExtraItems: 'Extra Items',
+      lAddItem: '+ Add Extra Item',
+      lItemNum: 'Extra Item', lSlot: 'Slot (0-53)',
+      lItemName: 'Name', lItemLore: 'Lore (one line per row)',
+      lItemCmds: 'Commands (one per line)',
+      pCentrales: 'Center Slots', pCustom: 'Special Path (21)',
+      pSnake: 'Snake', pZigzag: 'Zig-Zag', pBorders: 'Borders',
+      sSlots: 'Slots', sDesde: 'From', sHasta: 'To',
+      sID: 'ID', sPerm: 'Perm',
+      btnCopy: 'COPY YAML', btnCopied: '✓ COPIED',
+      btnShow: 'Show', btnHide: 'Hide',
+      dMsgLocked: "&cYou don't meet the requirements!",
+      dMsgClaim: '&aYou claimed level {lv} rewards!',
+      dMsgDone: '&7You already claimed this level',
+      dBtnLocked: '#AEFAB4➥ &cRequirements not met',
+      dBtnClaim: '#AEFAB4➥ &eClick to claim!',
+      dBtnDone: '#AEFAB4➥ &aLevel completed',
+      dProgPrefix: '(you have ',
+      hbPanel: 'How to use Panel Settings',
+      hbLore: 'How to use Lore & Buttons',
+      hbReqs: 'How to use the Requirements System',
+      hbRewards: 'How to use the Rewards System',
+      hbLuckperms: 'How to use LuckPerms',
+      hbLayout: 'How to use the Layout',
+
+      lPanelID: 'Panel ID', lOpenPerm: 'Default Permission',
+      lPanelTitle: 'Menu Title', lEmptyMat: 'Background (Material)',
+      lLoreMulti2: 'Top Lore', lTitleRew2: 'Rewards Text', lTitleReq2: 'Requirements Text',
+      lProgColor2: 'Extra text color', lProgPrefix2: 'Text before placeholder',
+      lProgSuffix2: 'Text after placeholder', lProgGoalColor2: 'Required value color',
+      lMaterial2: 'Material', lBtnText2: 'Button Text',
+      lSnd: 'Sound', lVol: 'Vol', lPitch: 'Pitch', lMsg: 'Message',
+      lNameLocked: 'Locked Name', lNameClaim: 'Claim Name', lNameDone: 'Completed Name',
+      vNameLocked: '&cLevel {lv} &7[LOCKED]',
+      vNameClaim: '&eLevel {lv} &f[CLAIM]',
+      vNameDone: '&aLevel {lv} &b[COMPLETED]',
+      lPermBase2: 'Level Permission (.{lv})', lLpCmd2: 'LP Command',
+      lPattern2: 'Pattern', lStartLv2: 'Start Level', lBatch2: 'Slot Count',
+      invActive: '🟩 = active slot', invInfo: 'slots',
+      lLoreMulti2: 'Top Lore',
+      lTitleRew2: 'Rewards Text',
+      lTitleReq2: 'Requirements Text',
+      lProgColor2: 'Extra text color',
+      lProgPrefix2: 'Text before placeholder',
+      lProgSuffix2: 'Text after placeholder',
+      lProgGoalColor2: 'Required value color',
+      lOpenCmds2: 'Open Commands',
+      lOpenOnCmds2: 'Commands on Open',
+      lPermBase2: 'Level Permission (.{lv})',
+      lLpCmd2: 'LP Command',
+      lPattern2: 'Pattern',
+      lRows2: 'Menu rows',
+      lStartLv2: 'Start Level',
+      lBatch2: 'Slot Count',
+      lMaterial: 'Material',
+      lBtnText2: 'Button Text',
+      lNameLocked: 'Locked Name',
+      lNameClaim: 'Claim Name',
+      lNameDone: 'Completed Name',
+      vNameLocked: '&cLevel {lv} &7[LOCKED]',
+      vNameClaim: '&eLevel {lv} &f[CLAIM]',
+      vNameDone: '&aLevel {lv} &b[COMPLETED]',
+      lReqTitle2: 'Title',
+      lReqVar2: 'PlaceholderAPI Variable',
+      lReqBase2: 'Base',
+      lReqAumento2: 'Increase/Lv',
+      lReqColor2: 'Color',
+      lReqLevels2: 'Levels',
+      lReqLevelsPlaceholder2: 'All',
+      lRewName2: 'Name',
+      lRewLevels2: 'Levels',
+      lRewCmd2: 'Command',
+      lRewAmount2: 'Amount',
+      lRewMode2: 'Mode',
+      lRewModeMult2: 'Multiply x Lv',
+      lRewModeFixed2: 'Fixed',
+      lItemSlot: 'Slot (0-53)',
+      lItemMat: 'Material',
+      lItemName2: 'Name',
+      lItemLore2: 'Lore (one line per row)',
+      lItemCmds2: 'Commands (one per line)',
+      lItemNumLabel: 'Extra Item',
+
+      phOpenOnCmds: 'One command per line',
+      phPanelType: 'Type or choose an option...',
+      ptOptions: 'Options',
+      ptDesc_static: 'Static panel, does not refresh',
+      ptDesc_nocommand: 'No open commands',
+      ptDesc_nocommandregister: 'Does not register commands on server',
+      ptDesc_unmovable: 'Items cannot be moved',
+      ptDesc_unclosable: 'Panel cannot be closed with ESC',
+      phProgGoalColor: 'use requirement color',
+      lblProgPreview: 'Preview',
+      addCmdLabel: '+ Add command',
+      vPanelID: 'panel_name',
+      vOpenCmds: 'rewards, r',
+      vTitleRew: '#AEFAb4Rewards:',
+      vTitleReq: '#5DFA30Requirements:',
+      vProgPrefix: '(you have ',
+      vProgSuffix: ')',
+      vLoreMulti: '&8INFORMATION\n \n&fUnlock this reward\n&fby completing tasks.',
+      vBtnLocked: '#AEFAB4➥ &cRequirements not met',
+      vBtnClaim: '#AEFAB4➥ &eClick to claim!',
+      vBtnDone: '#AEFAB4➥ &aLevel completed',
+      vMsgLocked: "&cYou don't meet the requirements!",
+      vMsgClaim: '&aYou claimed level {lv} rewards!',
+      vMsgDone: '&7You already claimed this level',
+      vPermBase: 'reward.claimed',
+      hbPanelItems: [
+        ['Panel ID', 'unique identifier in the YAML, no spaces.'],
+        ['Default Permission', 'required to open the panel. Use <code>default</code> for all.'],
+        ['Open Commands', 'comma-separated, e.g. <code>rewards, r</code>.'],
+        ['commands-on-open', 'console commands executed every time the panel opens.'],
+        ['panelType', '<code>static</code> no refresh, <code>nocommand</code> disables commands, <code>unclosable</code> blocks ESC.'],
+        ['Background', 'material that fills empty inventory slots.'],
+      ],
+      hbLoreItems: [
+        ['Top Lore', 'visible on all slots. Supports <code>&</code> and <code>#HEX</code> colors.'],
+        ['Show progress', 'adds current progress next to the required value. E.g. <code>&fMoney: &a1000 &7(you have %vault_eco_balance%)</code>.'],
+        ['State commands', 'each state has its own <code>msg=</code> and <code>sound=</code>.'],
+        ['Add command', 'adds extra lines to the <code>commands:</code> block of each state.'],
+        ['States', 'Locked shows missing requirements, Claim runs rewards, Completed confirms the level.'],
+      ],
+      hbReqsItems: [
+        ['PlaceholderAPI Variable', 'evaluated placeholder, e.g. <code>%vault_eco_balance%</code>.'],
+        ['Base + Increase/Lv', 'E.g. Base <code>1000</code> + Increase <code>500</code> → level 3 needs <code>2000</code>.'],
+        ['Levels', 'comma-separated to restrict, e.g. <code>1,3,5</code>. Empty = all.'],
+        ['Color', 'color code for lore, e.g. <code>&a</code> or <code>#HEX</code>.'],
+        ['Add Requirement', 'stack multiple requirements with different variables and level ranges.'],
+      ],
+      hbRewardsItems: [
+        ['Command', 'executed in console on claim. Use <code>{val}</code> and <code>{lv}</code>.'],
+        ['Multiply x Lv', '<code>amount × level</code>, scales progressively.'],
+        ['Fixed', 'always delivers the same amount.'],
+        ['Levels', 'comma-separated for specific levels. Empty = all.'],
+        ['Toggle', 'disable without deleting, excluded from YAML.'],
+        ['Add Reward', 'stack multiple commands per level, e.g. money + items + permissions.'],
+      ],
+      hbLuckpermsItems: [
+        ['Level Permission', 'granted on claim, e.g. <code>reward.claimed.3</code>.'],
+        ['LP Command', 'executed in console. Use <code>{perm}</code> and <code>{lv}</code>.'],
+        ['HASPERM', 'panel checks the permission to show the Completed state.'],
+        ['Without LuckPerms', 'the system cannot mark levels as completed.'],
+      ],
+      hbLayoutItems: [
+        ['Pattern', 'distribution of reward slots inside the inventory.'],
+        ['Rows', 'vertical size of the menu, 1 to 6. Warning appears if slots do not fit.'],
+        ['Start Level', 'first generated level, useful for splitting into multiple YAML files.'],
+        ['Slot Count', 'how many levels to generate. Each green slot = one level.'],
+        ['Extra Items', 'decorative slots with material, name, lore and commands.'],
+        ['Background', 'empty slots filled with material from Panel Settings.'],
+      ],
+
+    },
+    pt: {
+      confirmReset: 'Resetar tudo?',
+      flag: '🇧🇷', label: 'Idioma: Português',
+      ttPanel: 'Painel', ttLore: 'Lore & Botões', ttReqs: 'Requisitos',
+      ttRewards: 'Recompensas', ttLuckperms: 'LuckPerms', ttLayout: 'Layout',
+      hPanel: '⚙️ Configurações do Painel', hLore: '📝 Lore & Botões',
+      hReqs: '📊 Requisitos', hRewards: '🎁 Recompensas',
+      hLuckperms: '🔑 LuckPerms', hLayout: '🗺️ Layout',
+      bPanel:'PAINEL', bLore:'LORE', bReqs:'REQS', bLuckperms:'LP', bLayout:'INV',
+      lPanelID: 'ID do Painel', lOpenPerm: 'Permissão Padrão',
+      lPanelTitle: 'Título do Menu', lOpenCmds: 'Comandos de Abertura',
+      lEmptyMat: 'Fundo (Material)', lOpenOnCmds: 'Comandos ao Abrir',
+      lPanelType: 'Tipo de Painel (panelType)',
+      lLoreMulti: 'Lore Superior', lTitleRew: 'Texto Recompensas',
+      lTitleReq: 'Texto Requisitos', lShowProgress: 'Mostrar progresso nos requisitos',
+      lProgColor: 'Cor do texto extra', lProgPrefix: 'Texto antes do placeholder',
+      lProgSuffix: 'Texto após o placeholder', lProgGoalColor: 'Cor do valor exigido',
+      lProgPreview: 'Pré-visualização',
+      lStatesTitle: 'Estados dos botões',
+      lLocked: '🔒 Bloqueado', lClaim: '🟠 Resgatar', lDone: '✅ Concluído',
+      lMaterial: 'Material', lBtnText: 'Texto do Botão', lCmdsState: 'Comandos de estado:',
+      lMsgPrefix: 'msg=', lSoundPrefix: 'sound=', lAddCmd: '+ Adicionar comando',
+      lReqNum: 'Requisito', lReqTitle: 'Título', lReqVar: 'Variável PlaceholderAPI',
+      lReqBase: 'Base', lReqAumento: 'Aumento/Nv', lReqColor: 'Cor',
+      lReqLevels: 'Níveis', lReqLevelsPlaceholder: 'Todos',
+      lAddReq: '+ Adicionar Requisito',
+      lRewNum: 'Recompensa', lRewName: 'Nome', lRewLevels: 'Níveis',
+      lRewCmd: 'Comando', lRewAmount: 'Quantidade', lRewMode: 'Modo',
+      lRewColor: 'Cor', lRewModeMult: 'Multiplicar x Nv', lRewModeFixed: 'Fixo',
+      lAddReward: '+ Adicionar Recompensa',
+      lPermBase: 'Permissão de Nível (.{lv})', lLpCmd: 'Comando LP',
+      lPattern: 'Padrão', lStartLv: 'Nível Inicial', lBatch: 'Qtd. Slots',
+      lRows: 'Linhas do menu (rows)', lExtraItems: 'Itens Extras',
+      lAddItem: '+ Adicionar Item Extra',
+      lItemNum: 'Item Extra', lSlot: 'Slot (0-53)',
+      lItemName: 'Nome', lItemLore: 'Lore (uma linha por campo)',
+      lItemCmds: 'Comandos (um por linha)',
+      pCentrales: 'Slots Centrais', pCustom: 'Caminho Especial (21)',
+      pSnake: 'Cobra', pZigzag: 'Zig-Zag', pBorders: 'Bordas',
+      sSlots: 'Slots', sDesde: 'De', sHasta: 'Até',
+      sID: 'ID', sPerm: 'Perm',
+      btnCopy: 'COPIAR YAML', btnCopied: '✓ COPIADO',
+      btnShow: 'Mostrar', btnHide: 'Ocultar',
+      dMsgLocked: '&cVocê não atende aos requisitos!',
+      dMsgClaim: '&aVocê resgatou as recompensas do nível {lv}!',
+      dMsgDone: '&7Você já resgatou este nível',
+      dBtnLocked: '#AEFAB4➥ &cNão atende os requisitos',
+      dBtnClaim: '#AEFAB4➥ &eClique para resgatar!',
+      dBtnDone: '#AEFAB4➥ &aNível concluído',
+      dProgPrefix: '(você tem ',
+      hbPanel: 'Como usar as Configurações do Painel',
+      hbLore: 'Como usar Lore & Botões',
+      hbReqs: 'Como usar o Sistema de Requisitos',
+      hbRewards: 'Como usar o Sistema de Recompensas',
+      hbLuckperms: 'Como usar o LuckPerms',
+      hbLayout: 'Como usar o Layout',
+
+      lPanelID: 'ID do Painel', lOpenPerm: 'Permissão Padrão',
+      lPanelTitle: 'Título do Menu', lEmptyMat: 'Fundo (Material)',
+      lLoreMulti2: 'Lore Superior', lTitleRew2: 'Texto Recompensas', lTitleReq2: 'Texto Requisitos',
+      lProgColor2: 'Cor do texto extra', lProgPrefix2: 'Texto antes do placeholder',
+      lProgSuffix2: 'Texto após o placeholder', lProgGoalColor2: 'Cor do valor exigido',
+      lMaterial2: 'Material', lBtnText2: 'Texto do Botão',
+      lSnd: 'Som', lVol: 'Vol', lPitch: 'Tom', lMsg: 'Mensagem',
+      lNameLocked: 'Nome Bloqueado', lNameClaim: 'Nome Resgatar', lNameDone: 'Nome Concluído',
+      vNameLocked: '&cNível {lv} &7[BLOQUEADO]',
+      vNameClaim: '&eNível {lv} &f[RESGATAR]',
+      vNameDone: '&aNível {lv} &b[CONCLUÍDO]',
+      lPermBase2: 'Permissão de Nível (.{lv})', lLpCmd2: 'Comando LP',
+      lPattern2: 'Padrão', lStartLv2: 'Nível Inicial', lBatch2: 'Qtd. Slots',
+      invActive: '🟩 = slot ativo', invInfo: 'slots',
+      lLoreMulti2: 'Lore Superior',
+      lTitleRew2: 'Texto Recompensas',
+      lTitleReq2: 'Texto Requisitos',
+      lProgColor2: 'Cor do texto extra',
+      lProgPrefix2: 'Texto antes do placeholder',
+      lProgSuffix2: 'Texto após o placeholder',
+      lProgGoalColor2: 'Cor do valor exigido',
+      lOpenCmds2: 'Comandos de Abertura',
+      lOpenOnCmds2: 'Comandos ao Abrir',
+      lPermBase2: 'Permissão de Nível (.{lv})',
+      lLpCmd2: 'Comando LP',
+      lPattern2: 'Padrão',
+      lRows2: 'Linhas do menu (rows)',
+      lStartLv2: 'Nível Inicial',
+      lBatch2: 'Qtd. Slots',
+      lMaterial: 'Material',
+      lBtnText2: 'Texto do Botão',
+      lNameLocked: 'Nome Bloqueado',
+      lNameClaim: 'Nome Resgatar',
+      lNameDone: 'Nome Concluído',
+      vNameLocked: '&cNível {lv} &7[BLOQUEADO]',
+      vNameClaim: '&eNível {lv} &f[RESGATAR]',
+      vNameDone: '&aNível {lv} &b[CONCLUÍDO]',
+      lReqTitle2: 'Título',
+      lReqVar2: 'Variável PlaceholderAPI',
+      lReqBase2: 'Base',
+      lReqAumento2: 'Aumento/Nv',
+      lReqColor2: 'Cor',
+      lReqLevels2: 'Níveis',
+      lReqLevelsPlaceholder2: 'Todos',
+      lRewName2: 'Nome',
+      lRewLevels2: 'Níveis',
+      lRewCmd2: 'Comando',
+      lRewAmount2: 'Quantidade',
+      lRewMode2: 'Modo',
+      lRewModeMult2: 'Multiplicar x Nv',
+      lRewModeFixed2: 'Fixo',
+      lItemSlot: 'Slot (0-53)',
+      lItemMat: 'Material',
+      lItemName2: 'Nome',
+      lItemLore2: 'Lore (uma linha por campo)',
+      lItemCmds2: 'Comandos (um por linha)',
+      lItemNumLabel: 'Item Extra',
+
+      phOpenOnCmds: 'Um comando por linha',
+      phPanelType: 'Digite ou escolha uma opção...',
+      ptOptions: 'Opções',
+      ptDesc_static: 'Painel estático, não atualiza',
+      ptDesc_nocommand: 'Sem comandos de abertura',
+      ptDesc_nocommandregister: 'Não registra comandos no servidor',
+      ptDesc_unmovable: 'Itens não podem ser movidos',
+      ptDesc_unclosable: 'Painel não pode ser fechado com ESC',
+      phProgGoalColor: 'usar cor do requisito',
+      lblProgPreview: 'Pré-visualização',
+      addCmdLabel: '+ Adicionar comando',
+      vPanelID: 'nome_painel',
+      vOpenCmds: 'recompensas, rewards',
+      vTitleRew: '#AEFAb4Recompensas:',
+      vTitleReq: '#5DFA30Requisitos:',
+      vProgPrefix: '(você tem ',
+      vProgSuffix: ')',
+      vLoreMulti: '&8INFORMAÇÃO\n \n&fDesbloqueie esta recompensa\n&fconcluindo as tarefas.',
+      vBtnLocked: '#AEFAB4➥ &cNão atende os requisitos',
+      vBtnClaim: '#AEFAB4➥ &eClique para resgatar!',
+      vBtnDone: '#AEFAB4➥ &aNível concluído',
+      vMsgLocked: '&cVocê não atende aos requisitos!',
+      vMsgClaim: '&aVocê resgatou as recompensas do nível {lv}!',
+      vMsgDone: '&7Você já resgatou este nível',
+      vPermBase: 'recompensa.resgatada',
+      hbPanelItems: [
+        ['ID do Painel', 'identificador único no YAML, sem espaços.'],
+        ['Permissão Padrão', 'necessária para abrir o painel. Use <code>default</code> para todos.'],
+        ['Comandos de Abertura', 'separados por vírgula, ex. <code>rewards, r</code>.'],
+        ['commands-on-open', 'comandos de console executados cada vez que o painel abre.'],
+        ['panelType', '<code>static</code> não atualiza, <code>nocommand</code> desativa comandos, <code>unclosable</code> bloqueia ESC.'],
+        ['Fundo', 'material que preenche os slots vazios do inventário.'],
+      ],
+      hbLoreItems: [
+        ['Lore Superior', 'visível em todos os slots. Suporta <code>&</code> e <code>#HEX</code>.'],
+        ['Mostrar progresso', 'adiciona o progresso atual ao lado do valor exigido. Ex: <code>&fDinheiro: &a1000 &7(você tem %vault_eco_balance%)</code>.'],
+        ['Comandos de estado', 'cada estado tem seu próprio <code>msg=</code> e <code>sound=</code>.'],
+        ['Adicionar comando', 'adiciona linhas extras ao bloco <code>commands:</code> de cada estado.'],
+        ['Estados', 'Bloqueado mostra requisitos faltantes, Resgatar executa recompensas, Concluído confirma o nível.'],
+      ],
+      hbReqsItems: [
+        ['Variável PlaceholderAPI', 'placeholder avaliado, ex. <code>%vault_eco_balance%</code>.'],
+        ['Base + Aumento/Nv', 'Ex: Base <code>1000</code> + Aumento <code>500</code> → nível 3 exige <code>2000</code>.'],
+        ['Níveis', 'separe por vírgula para restringir, ex. <code>1,3,5</code>. Vazio = todos.'],
+        ['Cor', 'código de cor para o lore, ex. <code>&a</code> ou <code>#HEX</code>.'],
+        ['Adicionar Requisito', 'empilhe múltiplos requisitos com diferentes variáveis e intervalos.'],
+      ],
+      hbRewardsItems: [
+        ['Comando', 'executado no console ao resgatar. Use <code>{val}</code> e <code>{lv}</code>.'],
+        ['Multiplicar x Nv', '<code>quantidade × nível</code>, escala progressivamente.'],
+        ['Fixo', 'sempre entrega a mesma quantidade.'],
+        ['Níveis', 'separe por vírgula para níveis específicos. Vazio = todos.'],
+        ['Toggle', 'desativa sem excluir, excluído do YAML.'],
+        ['Adicionar Recompensa', 'empilhe múltiplos comandos por nível, ex. dinheiro + itens + permissões.'],
+      ],
+      hbLuckpermsItems: [
+        ['Permissão de Nível', 'concedida ao resgatar, ex. <code>recompensa.resgatada.3</code>.'],
+        ['Comando LP', 'executado no console. Use <code>{perm}</code> e <code>{lv}</code>.'],
+        ['HASPERM', 'o painel verifica a permissão para mostrar o estado Concluído.'],
+        ['Sem LuckPerms', 'o sistema não pode marcar níveis como concluídos.'],
+      ],
+      hbLayoutItems: [
+        ['Padrão', 'distribuição dos slots de recompensa no inventário.'],
+        ['Linhas (rows)', 'tamanho vertical do menu, de 1 a 6. Aviso aparece se os slots não couberem.'],
+        ['Nível Inicial', 'primeiro nível gerado, útil para dividir em vários arquivos YAML.'],
+        ['Qtd. Slots', 'quantos níveis gerar. Cada slot verde = um nível.'],
+        ['Itens Extras', 'slots decorativos com material, nome, lore e comandos.'],
+        ['Fundo', 'slots vazios preenchidos com o material configurado nas Configurações.'],
+      ],
+
+    }
+  };
+
+  function cycleLang() {
+    langIdx = (langIdx + 1) % LANGS.length;
+    applyLang();
+  }
+
+  function applyLang() {
+    T = TRANSLATIONS[LANGS[langIdx]];
+    // Flag + tooltip
+    document.getElementById('langFlag').textContent = T.flag;
+    document.getElementById('langTooltip').textContent = T.label;
+    // Sidebar tooltips
+    const ttMap = { panel: T.ttPanel, lore: T.ttLore, reqs: T.ttReqs,
+      rewards: T.ttRewards, luckperms: T.ttLuckperms, layout: T.ttLayout };
+    document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+      const tip = btn.querySelector('.tooltip');
+      if(tip && ttMap[btn.dataset.view]) tip.textContent = ttMap[btn.dataset.view];
+    });
+    // Panel headers & badges
+    setTxt('hPanel', T.hPanel); setTxt('hLore', T.hLore);
+    setTxt('hReqs', T.hReqs); setTxt('hRewards', T.hRewards);
+    setTxt('hLuckperms', T.hLuckperms); setTxt('hLayout', T.hLayout);
+    setTxt('bPanel', T.bPanel); setTxt('bLore', T.bLore);
+    setTxt('bReqs', T.bReqs); setTxt('bLuckperms', T.bLuckperms); setTxt('bLayout', T.bLayout);
+    // Field labels
+    setLbl('panelID', T.lPanelID); setLbl('openPerm', T.lOpenPerm);
+    setLbl('panelTitle', T.lPanelTitle); setLbl('openCmds', T.lOpenCmds);
+    setLbl('emptyMat', T.lEmptyMat); setLbl('openOnCmds', T.lOpenOnCmds);
+    setLbl('panelTypeInput', T.lPanelType);
+    setLbl('loreMulti', T.lLoreMulti); setLbl('titleRew', T.lTitleRew);
+    setLbl('titleReq', T.lTitleReq); setLbl('showProgress', T.lShowProgress);
+    setLbl('progColor', T.lProgColor); setLbl('progPrefix', T.lProgPrefix);
+    setLbl('progSuffix', T.lProgSuffix); setLbl('progGoalColor', T.lProgGoalColor);
+    setLbl('permBase', T.lPermBase); setLbl('lpCmd', T.lLpCmd);
+    setLbl('patternSelect', T.lPattern); setLbl('startLv', T.lStartLv); setLbl('batch', T.lBatch);
+    // State pill labels
+    setTxt('lblLocked', T.lLocked); setTxt('lblClaim', T.lClaim); setTxt('lblDone', T.lDone);
+    // State cmds labels
+    document.querySelectorAll('.state-cmds-label').forEach(el => el.textContent = T.lCmdsState);
+    // Add buttons
+    setAddBtn('addReqBtn', T.lAddReq);
+    setAddBtn('addRewBtn', T.lAddReward);
+    setAddBtn('addItemBtn', T.lAddItem);
+    // Sdiv labels
+    setTxt('sdivStates', T.lStatesTitle);
+    setTxt('sdivExtraItems', T.lExtraItems);
+    // Rows label
+    setTxt('rowsLabel', T.lRows);
+    // Copy btn
+    const cb = document.getElementById('copyBtn');
+    if(cb && cb.textContent !== (T.btnCopied||'')) cb.textContent = T.btnCopy;
+    // Toggle btn
+    const previewOpen = document.getElementById('previewPanel').classList.contains('open');
+    setTxt('previewToggleLabel', previewOpen ? T.btnHide : T.btnShow);
+    // Stats
+    setTxt('statLblSlots', T.sSlots); setTxt('statLblDesde', T.sDesde);
+    setTxt('statLblHasta', T.sHasta); setTxt('statLblID', T.sID); setTxt('statLblPerm', T.sPerm);
+    // Inv legend
+    setTxt('invLegendActive', T.invActive);
+    // Pattern options
+    const ps = document.getElementById('patternSelect');
+    if(ps) {
+      const vals = ['centrales','custom_path','snake','zigzag','borders'];
+      const txts = [T.pCentrales, T.pCustom, T.pSnake, T.pZigzag, T.pBorders];
+      ps.querySelectorAll('option').forEach((o,i) => { if(txts[i]) o.textContent = txts[i]; });
+    }
+    // Help box titles
+    setTxt('hbTitlePanel', T.hbPanel); setTxt('hbTitleLore', T.hbLore);
+    setTxt('hbTitleReqs', T.hbReqs); setTxt('hbTitleRewards', T.hbRewards);
+    setTxt('hbTitleLuckperms', T.hbLuckperms); setTxt('hbTitleLayout', T.hbLayout);
+
+    // Help box full content
+    const hbMap = [
+      ['hbPanel', 'hbPanelItems'], ['hbLore', 'hbLoreItems'],
+      ['hbReqs', 'hbReqsItems'], ['hbRewards', 'hbRewardsItems'],
+      ['hbLuckperms', 'hbLuckpermsItems'], ['hbLayout', 'hbLayoutItems']
+    ];
+    hbMap.forEach(([titleId, itemsKey]) => {
+      const titleEl = document.getElementById('hbTitle' + titleId.replace('hb',''));
+      if(titleEl && T[titleId]) titleEl.textContent = T[titleId];
+      const ul = titleEl?.closest('.help-box')?.querySelector('ul');
+      if(ul && T[itemsKey]) {
+        ul.innerHTML = '';
+        T[itemsKey].forEach(([bold, rest]) => {
+          const li = document.createElement('li');
+          li.innerHTML = '<b>' + bold + ':</b> ' + rest;
+          ul.appendChild(li);
+        });
+      }
+    });
+
+    // New field labels
+    setTxt('lblPanelID', T.lPanelID); setTxt('lblOpenPerm', T.lOpenPerm);
+    setTxt('lblPanelTitle', T.lPanelTitle); setTxt('lblEmptyMat', T.lEmptyMat);
+    setTxt('lblPanelType', T.lPanelType);
+    setTxt('lblLoreMulti', T.lLoreMulti2); setTxt('lblTitleRew', T.lTitleRew2); setTxt('lblTitleReq', T.lTitleReq2);
+    setTxt('lblProgColor', T.lProgColor2); setTxt('lblProgPrefix', T.lProgPrefix2);
+    setTxt('lblProgSuffix', T.lProgSuffix2); setTxt('lblProgGoalColor', T.lProgGoalColor2);
+    setTxt('lblMatLocked', T.lMaterial2); setTxt('lblBtnLocked', T.lBtnText2);
+    setTxt('lblMatClaim', T.lMaterial2); setTxt('lblBtnClaim', T.lBtnText2);
+    setTxt('lblMatDone', T.lMaterial2); setTxt('lblBtnDone', T.lBtnText2);
+    setTxt('lblVolLocked', T.lVol); setTxt('lblPitchLocked', T.lPitch);
+    setTxt('lblVolClaim', T.lVol); setTxt('lblPitchClaim', T.lPitch);
+    setTxt('lblVolDone', T.lVol); setTxt('lblPitchDone', T.lPitch);
+    setTxt('lblNameLocked', T.lNameLocked); setTxt('lblNameClaim', T.lNameClaim); setTxt('lblNameDone', T.lNameDone);
+    setTxt('lblPermBase', T.lPermBase2); setTxt('lblLpCmd', T.lLpCmd2);
+    setTxt('lblPattern', T.lPattern2); setTxt('lblStartLv', T.lStartLv2); setTxt('lblBatch', T.lBatch2);
+    // State name input values
+    setVal('nameLocked', T.vNameLocked); setVal('nameClaim', T.vNameClaim); setVal('nameDone', T.vNameDone);
+    // Placeholders
+    setPlaceholder('openOnCmds', T.phOpenOnCmds);
+    setPlaceholder('panelTypeInput', T.phPanelType);
+    setPlaceholder('progGoalColor', T.phProgGoalColor);
+    // Button texts
+    setTxt('ptOptionsLabel', T.ptOptions);
+    setTxt('lblShowProgress', T.lShowProgress);
+    setTxt('lblProgPreview', T.lblProgPreview);
+    // panelType option descriptions
+    ['static','nocommand','nocommandregister','unmovable','unclosable'].forEach(k => {
+      setTxt('ptDesc_' + k, T['ptDesc_' + k]);
+    });
+    // state-add-cmd-btn
+    ['addCmdLocked','addCmdClaim','addCmdDone'].forEach(id => setTxt(id, T.addCmdLabel));
+    // Input VALUES (only if lang actually changed)
+    setVal('panelID', T.vPanelID);
+    setVal('openCmds', T.vOpenCmds);
+    setVal('titleRew', T.vTitleRew);
+    setVal('titleReq', T.vTitleReq);
+    setVal('progPrefix', T.vProgPrefix);
+    setVal('progSuffix', T.vProgSuffix);
+    setVal('btnLocked', T.vBtnLocked);
+    setVal('btnClaim', T.vBtnClaim);
+    setVal('btnDone', T.vBtnDone);
+    setVal('msgLocked', T.vMsgLocked);
+    setVal('msgClaim', T.vMsgClaim);
+    setVal('msgDone', T.vMsgDone);
+    setVal('permBase', T.vPermBase);
+    setVal('nameLocked', T.vNameLocked);
+    setVal('nameClaim', T.vNameClaim);
+    setVal('nameDone', T.vNameDone);
+    // All static field labels
+    setTxt('lblLoreMulti', T.lLoreMulti2); setTxt('lblTitleRew', T.lTitleRew2); setTxt('lblTitleReq', T.lTitleReq2);
+    setTxt('lblProgColor', T.lProgColor2); setTxt('lblProgPrefix', T.lProgPrefix2);
+    setTxt('lblProgSuffix', T.lProgSuffix2); setTxt('lblProgGoalColor', T.lProgGoalColor2);
+    setTxt('lblOpenCmds', T.lOpenCmds2); setTxt('lblOpenOnCmds', T.lOpenOnCmds2);
+    setTxt('lblPermBase', T.lPermBase2); setTxt('lblLpCmd', T.lLpCmd2);
+    setTxt('lblPattern', T.lPattern2); setTxt('lblRows', T.lRows2);
+    setTxt('lblStartLv', T.lStartLv2); setTxt('lblBatch', T.lBatch2);
+    setTxt('lblNameLocked', T.lNameLocked); setTxt('lblNameClaim', T.lNameClaim); setTxt('lblNameDone', T.lNameDone);
+    setTxt('addReqTxt', T.lAddReq); setTxt('addRewTxt', T.lAddReward); setTxt('addItemTxt', T.lAddItem);
+    ['Locked','Claim','Done'].forEach(s => {
+      setTxt('lbl_mat'+s, T.lMaterial);
+      setTxt('lbl_btn'+s, T.lBtnText2);
+    });
+    // loreMulti textarea
+    const lm = document.getElementById('loreMulti');
+    if(lm && T.vLoreMulti) lm.value = T.vLoreMulti.replace(/\\n/g, '\n');
+
+    // Re-render dynamic lists with new lang
+    renderReqs(); renderRewards(); renderExtraItems();
+    gen();
+  }
+
+  function setTxt(id, val) { const e = document.getElementById(id); if(e && val) e.textContent = val; }
+  function setLbl(inputId, val) {
+    const el = document.getElementById(inputId);
+    if(!el) return;
+    const lbl = el.closest('.field-group')?.querySelector('label');
+    if(lbl && val) lbl.textContent = val;
+  }
+  function setPlaceholder(id, val) { const e = document.getElementById(id); if(e && val) e.placeholder = val; }
+  function setVal(id, val) { const e = document.getElementById(id); if(e && val !== undefined) e.value = val; }
+  function setAddBtn(id, val) {
+    const e = document.getElementById(id);
+    if(e && val) { e.childNodes.forEach(n => { if(n.nodeType===3) n.textContent = ' '+val.replace(/^\+ /,''); }); }
+  }
+
+  T = TRANSLATIONS.es;
+  initReqs(); initRewards(); gen();
+</script>
+</body>
+</html>
