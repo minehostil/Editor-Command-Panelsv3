@@ -29,3 +29,7 @@
  * Niveles: Para poner premios que solo salen cada ciertos niveles (ej: 5, 10, 15).
 
  * Enlace del editor: https://minehostil.github.io/Editor-Command-Panelsv3/
+
+
+
+Generador creado por una AI
